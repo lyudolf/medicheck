@@ -10,6 +10,7 @@
     { "source": "/api/supplements/search",  "destination": "/api/supplements/search.js" },
     { "source": "/api/supplements/detail",  "destination": "/api/supplements/detail.js" },
     { "source": "/api/account/delete",      "destination": "/api/account/delete.js" },
+    { "source": "/api/analyze/ingredients",  "destination": "/api/analyze/ingredients.js" },
     { "source": "/api/cron/cleanup",        "destination": "/api/cron/cleanup.js" }
   ]
 }
