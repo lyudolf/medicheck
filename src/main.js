@@ -91,13 +91,23 @@ export function addSupplement(supplement) {
     showToast('이미 추가된 영양제입니다.', 'info');
     return;
   }
-  state.supplements.push(supplement);
+  // 잔여량 추적 기본값 주입
+  const enriched = {
+    ...supplement,
+    totalPills: supplement.totalPills || 60,
+    dosagePerTake: supplement.dosagePerTake || 1,
+    remainingPills: supplement.remainingPills ?? supplement.totalPills ?? 60,
+  };
+  state.supplements.push(enriched);
   saveState();
   state.analysisResult = null;
+  state.timingResult = null;
   localStorage.removeItem('pillstack_analysis_result');
+  localStorage.removeItem('medicheck_timing_result');
+  localStorage.removeItem('medicheck_schedule');
   // Supabase 동기화 (로그인 시)
   if (state.user) {
-    insertSupplement(state.user.id, supplement).catch(e => console.warn('Supabase insert 실패:', e));
+    insertSupplement(state.user.id, enriched).catch(e => console.warn('Supabase insert 실패:', e));
     deleteAnalysis(state.user.id).catch(() => {});
   }
   showToast(`✅ ${supplement.name} 추가됨!`, 'success');
@@ -110,7 +120,10 @@ export function removeSupplement(id) {
     state.supplements.splice(idx, 1);
     saveState();
     state.analysisResult = null;
+    state.timingResult = null;
     localStorage.removeItem('pillstack_analysis_result');
+    localStorage.removeItem('medicheck_timing_result');
+    localStorage.removeItem('medicheck_schedule');
     // Supabase 동기화 (로그인 시)
     if (state.user) {
       deleteSupplement(state.user.id, id).catch(e => console.warn('Supabase delete 실패:', e));
@@ -259,13 +272,56 @@ function toggleDoseCheck(slot) {
   const idx = checked.indexOf(slot);
   if (idx === -1) {
     checked.push(slot);
+    // 잔여량 차감
+    const supp = state.supplements.find(s => (s.id || s.name) === slot);
+    if (supp && typeof supp.remainingPills === 'number') {
+      supp.remainingPills = Math.max(0, supp.remainingPills - (supp.dosagePerTake || 1));
+      saveState();
+    }
     showToast('✅ 복용 완료!', 'success');
   } else {
     checked.splice(idx, 1);
+    // 잔여량 복원
+    const supp = state.supplements.find(s => (s.id || s.name) === slot);
+    if (supp && typeof supp.remainingPills === 'number') {
+      supp.remainingPills = Math.min(supp.totalPills || 60, supp.remainingPills + (supp.dosagePerTake || 1));
+      saveState();
+    }
     showToast('↩️ 복용 체크 해제', 'info');
   }
   localStorage.setItem(key, JSON.stringify(checked));
   render();
+}
+
+// ─── Inventory Management ───
+function updateSupplementInventory(id, totalPills, dosagePerTake) {
+  const supp = state.supplements.find(s => s.id === id);
+  if (!supp) return;
+  const oldTotal = supp.totalPills || 60;
+  supp.totalPills = totalPills;
+  supp.dosagePerTake = dosagePerTake;
+  // 총 수량이 변경되면 잔여량도 비례 조정
+  if (totalPills !== oldTotal) {
+    supp.remainingPills = Math.min(totalPills, supp.remainingPills ?? totalPills);
+  }
+  saveState();
+  render();
+  showToast('✅ 수량 정보가 업데이트되었습니다.', 'success');
+}
+
+function refillSupplement(id) {
+  const supp = state.supplements.find(s => s.id === id);
+  if (!supp) return;
+  supp.remainingPills = supp.totalPills || 60;
+  saveState();
+  render();
+  showToast('🔄 리필 완료! 잔여량이 초기화되었습니다.', 'success');
+}
+
+function getCoupangSearchUrl(productName) {
+  const keyword = encodeURIComponent(productName);
+  // 쿠팡 파트너스 ID는 추후 .env에서 설정
+  return `https://www.coupang.com/np/search?component=&q=${keyword}`;
 }
 
 // ─── UI Helpers ───
@@ -429,10 +485,13 @@ window.app = {
   refreshApiStatus,
   setReminderTime,
   toggleDoseCheck,
+  updateSupplementInventory,
+  refillSupplement,
+  getCoupangSearchUrl,
   showToast,
   showShelfDetail: (id) => {
     const supp = state.supplements.find(s => s.id === id);
-    if (supp) showProductDetail(supp);
+    if (supp) showProductDetail(supp, true);
   },
   switchAnalysisTab: (tabId) => {
     document.querySelectorAll('.analysis-tab-content').forEach(el => el.style.display = 'none');

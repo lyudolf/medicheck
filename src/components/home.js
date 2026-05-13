@@ -67,6 +67,7 @@ function _renderEmpty() {
 
 function _renderMainContent(supplements) {
   return `
+    ${_renderRepurchaseBanner(supplements)}
     ${_renderTodaySchedule()}
     ${_renderShelf(supplements)}
   `;
@@ -121,15 +122,29 @@ function _renderShelf(supplements) {
       내 영양제 선반 (${supplements.length}개)
     </div>
     <div class="supplement-grid">
-      ${supplements.map((s, i) => `
+      ${supplements.map((s, i) => {
+        const total = s.totalPills || 60;
+        const remaining = s.remainingPills ?? total;
+        const pct = Math.round((remaining / total) * 100);
+        const isLow = pct <= 15;
+        const daysLeft = (s.dosagePerTake || 1) > 0 ? Math.floor(remaining / (s.dosagePerTake || 1)) : remaining;
+        return `
         <div class="supplement-card animate-in animate-in-delay-${(i % 4) + 1}" data-id="${s.id}"
              onclick="window.app.showShelfDetail('${s.id}')" style="cursor:pointer;">
           <button class="remove-btn" onclick="event.stopPropagation(); window.app.removeSupplement('${s.id}')" title="삭제">✕</button>
+          ${isLow ? '<span class="inventory-badge">⚠️ 곧 소진</span>' : ''}
           <div class="icon">${getSupplementIcon(s.icon)}</div>
           <div class="name">${s.name}</div>
           <div class="brand">${s.brand}</div>
+          <div class="inventory-bar-wrap">
+            <div class="inventory-bar">
+              <div class="inventory-bar-fill ${isLow ? 'low' : ''}" style="width:${pct}%"></div>
+            </div>
+            <span class="inventory-label">${remaining}정 / ${total}정 <span class="inventory-edit-hint">⚙️</span></span>
+          </div>
         </div>
-      `).join('')}
+      `;
+      }).join('')}
       <div class="add-card animate-in" onclick="window.app.navigate('search')">
         <div class="add-icon">+</div>
         <span>영양제 추가</span>
@@ -145,4 +160,41 @@ function _renderAnalyzeFAB(count) {
       <span class="fab-badge">${count}개 영양제</span>
     </button>
   `;
+}
+
+function _renderRepurchaseBanner(supplements) {
+  const lowSupps = supplements.filter(s => {
+    const total = s.totalPills || 60;
+    const remaining = s.remainingPills ?? total;
+    const pct = (remaining / total) * 100;
+    return pct <= 15;
+  });
+
+  if (lowSupps.length === 0) return '';
+
+  return `
+    <div class="repurchase-banner animate-in">
+      <div class="repurchase-banner-icon">🛒</div>
+      <div class="repurchase-banner-content">
+        <div class="repurchase-banner-title">재구매가 필요해요!</div>
+        <div class="repurchase-banner-list">
+          ${lowSupps.map(s => {
+            const remaining = s.remainingPills ?? 0;
+            const daysLeft = Math.floor(remaining / (s.dosagePerTake || 1));
+            return `
+              <a class="repurchase-item" href="${_getCoupangUrl(s.name)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+                <span>${s.name} (약 ${daysLeft}일 남음)</span>
+                <span class="repurchase-cta">재구매 ›</span>
+              </a>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="repurchase-disclaimer">이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받을 수 있습니다.</div>
+  `;
+}
+
+function _getCoupangUrl(productName) {
+  return `https://www.coupang.com/np/search?component=&q=${encodeURIComponent(productName)}`;
 }

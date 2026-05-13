@@ -83,7 +83,10 @@ export function renderAnalysis(analysisResult, timingResult) {
 
         <!-- Tab Navigation -->
         <div class="analysis-tabs animate-in animate-in-delay-2">
-          <button class="analysis-tab active" data-tab="deep" onclick="window.app.switchAnalysisTab('deep')">
+          <button class="analysis-tab active" data-tab="schedule" onclick="window.app.switchAnalysisTab('schedule')">
+            ⏰ 복용 스케줄
+          </button>
+          <button class="analysis-tab" data-tab="deep" onclick="window.app.switchAnalysisTab('deep')">
             🧪 심층 분석
           </button>
           <button class="analysis-tab" data-tab="deficiency" onclick="window.app.switchAnalysisTab('deficiency')">
@@ -91,8 +94,35 @@ export function renderAnalysis(analysisResult, timingResult) {
           </button>
         </div>
 
+        <!-- Tab: 추천 복용 스케줄 -->
+        <div class="analysis-tab-content" id="tab-schedule">
+          ${timingResult ? `
+            <div class="schedule-section animate-in">
+              <h3><span>⏰</span> 추천 복용 스케줄</h3>
+              <p style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:16px;line-height:1.5;">
+                시간을 탭하여 복용 알림을 설정하세요.
+              </p>
+              ${_renderTimeline(timingResult)}
+              ${timingResult.notes?.length > 0 ? `
+                <div style="margin-top:16px;">
+                  ${timingResult.notes.map((note) => `
+                    <div class="card" style="margin-bottom:8px;font-size:0.8rem;color:var(--text-secondary);line-height:1.5;">
+                      ${note}
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+            </div>
+          ` : `
+            <div class="empty-state" style="padding:40px 0;">
+              <div style="font-size:2rem;margin-bottom:12px;">⏰</div>
+              <p>복용 스케줄이 없습니다.<br>홈에서 분석을 실행하면 자동 생성됩니다.</p>
+            </div>
+          `}
+        </div>
+
         <!-- Tab: 심층 분석 -->
-        <div class="analysis-tab-content" id="tab-deep">
+        <div class="analysis-tab-content" id="tab-deep" style="display:none;">
           <!-- Interactions -->
           ${interactions.length > 0 ? `
             <div class="section-title animate-in animate-in-delay-2">
@@ -106,23 +136,6 @@ export function renderAnalysis(analysisResult, timingResult) {
 
           <!-- Gemini 성분 분석 결과 -->
           ${_renderIngredientAnalysis(ingredientAnalysis)}
-
-          <!-- Timing Recommendation -->
-          ${timingResult ? `
-            <div class="schedule-section animate-in animate-in-delay-3">
-              <h3><span>⏰</span> 추천 복용 스케줄</h3>
-              ${_renderTimeline(timingResult)}
-              ${timingResult.notes?.length > 0 ? `
-                <div style="margin-top:16px;">
-                  ${timingResult.notes.map((note) => `
-                    <div class="card" style="margin-bottom:8px;font-size:0.8rem;color:var(--text-secondary);line-height:1.5;">
-                      ${note}
-                    </div>
-                  `).join('')}
-                </div>
-              ` : ''}
-            </div>
-          ` : ''}
         </div>
 
         <!-- Tab: 결핍 영양소 -->

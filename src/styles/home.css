@@ -223,3 +223,289 @@
   color: var(--text-muted);
   opacity: 0.8;
 }
+
+/* ─── Inventory Progress Bar (카드 내) ─── */
+.inventory-bar-wrap {
+  width: 100%;
+  margin-top: 10px;
+  text-align: center;
+}
+
+.inventory-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.inventory-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-violet));
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.inventory-bar-fill.low {
+  background: linear-gradient(90deg, #ef4444, #f97316);
+}
+
+.inventory-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  margin-top: 6px;
+  font-weight: 500;
+}
+
+.inventory-edit-hint {
+  font-size: 0.6rem;
+  opacity: 0.5;
+  transition: opacity var(--transition-fast);
+}
+
+.supplement-card:hover .inventory-edit-hint {
+  opacity: 1;
+}
+
+.inventory-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  font-size: 0.55rem;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  font-weight: 600;
+  z-index: 1;
+}
+
+/* ─── Repurchase Banner ─── */
+.repurchase-banner {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  margin: 0 0 8px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(234, 88, 12, 0.08));
+  border: 1px solid rgba(249, 115, 22, 0.25);
+  border-radius: var(--radius-lg);
+}
+
+.repurchase-banner-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.repurchase-banner-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.repurchase-banner-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #f97316;
+  margin-bottom: 8px;
+}
+
+.repurchase-banner-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.repurchase-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  transition: background var(--transition-fast);
+}
+
+.repurchase-item:hover {
+  background: rgba(249, 115, 22, 0.15);
+}
+
+.repurchase-cta {
+  color: #f97316;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.repurchase-disclaimer {
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin-bottom: 16px;
+  opacity: 0.7;
+}
+
+/* ─── Detail Modal: Inventory Section ─── */
+.detail-inventory {
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  background: rgba(99, 102, 241, 0.04);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+}
+
+.inventory-status {
+  margin-bottom: 14px;
+}
+
+.inventory-progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.inventory-progress {
+  flex: 1;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.inventory-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-violet));
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.inventory-progress-fill.low {
+  background: linear-gradient(90deg, #ef4444, #f97316);
+}
+
+.inventory-pct {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  min-width: 36px;
+  text-align: right;
+}
+
+.inventory-info {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+
+.inventory-remaining,
+.inventory-days {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.inventory-edit {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.inventory-field {
+  flex: 1;
+}
+
+.inventory-field label {
+  display: block;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.inv-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  background: var(--bg-glass);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-family: var(--font-family);
+  text-align: center;
+}
+
+.inv-input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+}
+
+.inventory-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-inv-save,
+.btn-inv-refill {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-family);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-inv-save {
+  background: var(--accent-blue);
+  color: #fff;
+}
+
+.btn-inv-save:hover {
+  background: var(--accent-violet);
+}
+
+.btn-inv-refill {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.btn-inv-refill:hover {
+  background: rgba(34, 197, 94, 0.25);
+}
+
+/* ─── Coupang Button (Detail Modal) ─── */
+.btn-coupang {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff;
+  font-family: var(--font-family);
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.btn-coupang:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+}
+
+.coupang-disclaimer {
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 6px;
+  opacity: 0.7;
+  line-height: 1.4;
+}

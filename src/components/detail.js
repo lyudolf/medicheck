@@ -9,11 +9,13 @@ import { CATEGORIES } from '../data/fallbackDB.js';
 let currentProduct = null;
 let detailData = null;
 let isLoadingDetail = false;
+let isShelfView = false;
 
-export function showProductDetail(product) {
+export function showProductDetail(product, fromShelf = false) {
   currentProduct = product;
   detailData = null;
   isLoadingDetail = true;
+  isShelfView = fromShelf;
 
   // 모달 렌더
   const existing = document.getElementById('detail-modal');
@@ -103,10 +105,17 @@ function _renderDetailModal() {
 
         <!-- 하단 액션 -->
         <div class="detail-actions">
-          <button class="btn-primary" id="detail-add-btn"
-                  onclick="window.app.addFromDetail()">
-            ➕ 내 선반에 추가
-          </button>
+          ${isShelfView ? `
+            <a class="btn-coupang" href="https://www.coupang.com/np/search?component=&q=${encodeURIComponent(p.name)}" target="_blank" rel="noopener">
+              🛒 쿠팡에서 검색
+            </a>
+            <p class="coupang-disclaimer">이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받을 수 있습니다.</p>
+          ` : `
+            <button class="btn-primary" id="detail-add-btn"
+                    onclick="window.app.addFromDetail()">
+              ➕ 내 선반에 추가
+            </button>
+          `}
         </div>
       </div>
     </div>
@@ -146,6 +155,7 @@ function _renderDetailContent() {
 
     return `
       <div class="detail-source">🌐 공공데이터포털 건강기능식품 API</div>
+      ${isShelfView ? _renderInventorySection() : ''}
       ${sections.join('')}
     `;
   }
@@ -192,4 +202,53 @@ function _formatMultiline(text) {
 
 export function getCurrentProduct() {
   return currentProduct;
+}
+
+function _renderInventorySection() {
+  const p = currentProduct;
+  if (!p) return '';
+  const total = p.totalPills || 60;
+  const dosage = p.dosagePerTake || 1;
+  const remaining = p.remainingPills ?? total;
+  const pct = Math.round((remaining / total) * 100);
+  const daysLeft = dosage > 0 ? Math.floor(remaining / dosage) : remaining;
+  const isLow = pct <= 15;
+
+  return `
+    <div class="detail-section detail-inventory">
+      <h3 class="detail-section-title">📊 잔여량 관리</h3>
+      <div class="detail-section-content">
+        <div class="inventory-status">
+          <div class="inventory-progress-wrap">
+            <div class="inventory-progress">
+              <div class="inventory-progress-fill ${isLow ? 'low' : ''}" style="width:${pct}%"></div>
+            </div>
+            <div class="inventory-pct">${pct}%</div>
+          </div>
+          <div class="inventory-info">
+            <span class="inventory-remaining">${remaining}정 / ${total}정</span>
+            <span class="inventory-days">약 ${daysLeft}일 남음</span>
+          </div>
+        </div>
+        <div class="inventory-edit">
+          <div class="inventory-field">
+            <label>아 수 (1통)</label>
+            <input type="number" id="inv-total" value="${total}" min="1" max="999" class="inv-input">
+          </div>
+          <div class="inventory-field">
+            <label>1회 복용량</label>
+            <input type="number" id="inv-dosage" value="${dosage}" min="1" max="20" class="inv-input">
+          </div>
+        </div>
+        <div class="inventory-actions">
+          <button class="btn-inv-save" onclick="window.app.updateSupplementInventory('${p.id}', parseInt(document.getElementById('inv-total').value), parseInt(document.getElementById('inv-dosage').value)); window.app.closeDetail()">
+            💾 저장
+          </button>
+          <button class="btn-inv-refill" onclick="window.app.refillSupplement('${p.id}'); window.app.closeDetail()">
+            🔄 리필
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
 }
