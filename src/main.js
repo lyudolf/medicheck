@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════
 
 
-import { renderHome } from './components/home.js';
+import { renderHome, renderHomeFAB } from './components/home.js';
 import { renderSearch, handleSearch, filterCategory, clearSearch, getSupplementById, initSearch } from './components/search.js';
 import { renderCamera, initCamera, capturePhoto, handleImageUpload, retakePhoto, startOCR, destroyCamera } from './components/camera.js';
 import { renderAnalysis } from './components/analysis.js';
@@ -321,7 +321,7 @@ function refillSupplement(id) {
 function getCoupangSearchUrl(productName) {
   const keyword = encodeURIComponent(productName);
   // 쿠팡 파트너스 ID는 추후 .env에서 설정
-  return `https://www.coupang.com/np/search?component=&q=${keyword}`;
+  return `https://link.coupang.com/re/AFFTAG?lptag=AF7110745&subId=pillstack&pageType=SRP&q=${keyword}`;
 }
 
 // ─── UI Helpers ───
@@ -404,7 +404,8 @@ function render() {
       pageHTML = renderHome();
   }
 
-  app.innerHTML = _renderGlobalHeader() + `<main class="app-content">${pageHTML}</main>` + _renderBottomNav();
+  const fabHTML = state.currentPage === 'home' ? renderHomeFAB() : '';
+  app.innerHTML = _renderGlobalHeader() + `<main class="app-content">${pageHTML}</main>` + fabHTML + _renderBottomNav();
 }
 
 function _renderGlobalHeader() {

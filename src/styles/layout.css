@@ -5,9 +5,10 @@
 
 /* ─── Page Container ─── */
 .page {
+  --page-bottom: calc(72px + var(--safe-bottom));
   position: absolute;
   inset: 0;
-  padding: 0 0 calc(72px + var(--safe-bottom)) 0;
+  padding: 0 0 var(--page-bottom) 0;
   overflow-y: auto;
   overflow-x: hidden;
   opacity: 0;
@@ -45,6 +46,10 @@
 
 .page-content {
   padding: 0 20px 20px;
+}
+
+.page.has-fab {
+  --page-bottom: calc(148px + var(--safe-bottom));
 }
 
 /* ─── Global Header ─── */

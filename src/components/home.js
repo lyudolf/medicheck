@@ -9,14 +9,19 @@ export function renderHome() {
   const isEmpty = supplements.length === 0;
 
   return `
-    <div class="page active" id="page-home">
+    <div class="page active ${supplements.length >= 2 ? 'has-fab' : ''}" id="page-home">
       ${_renderHeader()}
       <div class="page-content">
         ${isEmpty ? _renderEmpty() : _renderMainContent(supplements)}
       </div>
-      ${supplements.length >= 2 ? _renderAnalyzeFAB(supplements.length) : ''}
     </div>
   `;
+}
+
+export function renderHomeFAB() {
+  const count = state.supplements.length;
+  if (count < 2) return '';
+  return _renderAnalyzeFAB(count);
 }
 
 function _renderHeader() {
@@ -196,5 +201,5 @@ function _renderRepurchaseBanner(supplements) {
 }
 
 function _getCoupangUrl(productName) {
-  return `https://www.coupang.com/np/search?component=&q=${encodeURIComponent(productName)}`;
+  return `https://link.coupang.com/re/AFFTAG?lptag=AF7110745&subId=pillstack&pageType=SRP&q=${encodeURIComponent(productName)}`;
 }
