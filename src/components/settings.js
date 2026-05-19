@@ -26,8 +26,12 @@ export function renderSettings() {
               </div>
             </div>
           </div>
-          <div class="settings-item" style="justify-content:center;">
-            <button class="btn btn-outline" style="width:100%;padding:10px;" onclick="window.app.logout()">로그아웃</button>
+          <div class="settings-item settings-logout-item" onclick="window.app.logout()">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span class="settings-logout-icon">🚪</span>
+              <div class="settings-label">로그아웃</div>
+            </div>
+            <div class="result-arrow">›</div>
           </div>
         </div>
 
