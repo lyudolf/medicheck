@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "654675992645",
+    "project_id": "pillstack-d4fb7",
+    "storage_bucket": "pillstack-d4fb7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:654675992645:android:511cf36bb97aabbff2032c",
+        "android_client_info": {
+          "package_name": "kr.pillstack"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBL_j_RHGANebs4IiPirlkfOt1YUKqUtEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

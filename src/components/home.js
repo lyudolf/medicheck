@@ -3,6 +3,7 @@
 import { state, addSupplement, removeSupplement } from '../main.js';
 import { getTodaySchedule } from '../services/reminder.js';
 import { getSupplementIcon } from '../utils/icons.js';
+import { checkAnalysisQuota } from '../services/admob.js';
 
 export function renderHome() {
   const supplements = state.supplements;
@@ -159,10 +160,12 @@ function _renderShelf(supplements) {
 }
 
 function _renderAnalyzeFAB(count) {
+  const quota = checkAnalysisQuota();
+  const quotaText = quota.needAd ? '광고 시청 필요' : `무료 ${quota.remaining}회 남음`;
   return `
     <button class="analyze-fab" onclick="window.app.startAnalysis()">
       🔬 성분 분석하기
-      <span class="fab-badge">${count}개 영양제</span>
+      <span class="fab-badge">${quotaText}</span>
     </button>
   `;
 }

@@ -4,3 +4,6 @@ dist
 
 .vercel
 .env*.local
+
+# Keystore
+pillstack-release.keystore

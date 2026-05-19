@@ -18,6 +18,8 @@ import { publicDataAPI } from './api/publicData.js';
 import { saveReminderTime, initServiceWorker, requestNotificationPermission, syncRemindersToSW, saveScheduleForSW } from './services/reminder.js';
 import { signInWithGoogle, signInWithKakao, signOut, getSession, onAuthStateChange } from './lib/supabase.js';
 import { fetchSupplements, insertSupplement, deleteSupplement, fetchAnalysis, upsertAnalysis, deleteAnalysis } from './services/db.js';
+import { initAdMob, showRewardedAd, checkAnalysisQuota, incrementAnalysisCount, FREE_DAILY_LIMIT } from './services/admob.js';
+import { initPushNotifications } from './services/fcm.js';
 
 // ─── State Management ───
 const STORAGE_KEY = 'medicheck_supplements';
@@ -141,6 +143,17 @@ async function startAnalysis() {
     return;
   }
 
+  // 광고 게이트: 하루 무료 횟수 초과 시 리워드 광고 시청
+  const quota = checkAnalysisQuota();
+  if (quota.needAd) {
+    showToast('📺 추가 분석을 위해 광고를 시청해주세요.', 'info');
+    const rewarded = await showRewardedAd();
+    if (!rewarded) {
+      showToast('광고 시청이 완료되지 않았습니다.', 'error');
+      return;
+    }
+  }
+
   showLoading(true);
 
   try {
@@ -155,6 +168,7 @@ async function startAnalysis() {
       upsertAnalysis(state.user.id, state.analysisResult, state.timingResult)
         .catch(e => console.warn('Supabase analysis upsert 실패:', e));
     }
+    incrementAnalysisCount();
     state.currentPage = 'analysis';
     render();
   } catch (err) {
@@ -667,6 +681,12 @@ async function init() {
 
   // Service Worker 등록 (백그라운드)
   initServiceWorker().catch(console.warn);
+
+  // AdMob 초기화 (백그라운드, 네이티브 앱에서만 동작)
+  initAdMob().catch(console.warn);
+
+  // FCM 푸시 알림 초기화 (백그라운드, 네이티브 앱에서만 동작)
+  initPushNotifications().catch(console.warn);
 
   // Health check 백그라운드 (UI 블로킹 없음)
   publicDataAPI.checkHealth()
