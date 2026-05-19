@@ -59,6 +59,18 @@ export function renderSettings() {
               <div class="settings-desc">PillStack v1.0.0</div>
             </div>
           </div>
+          <div class="settings-item" onclick="window.open('https://pillstack.kr/privacy.html', '_blank')">
+            <div>
+              <div class="settings-label">개인정보 처리방침</div>
+            </div>
+            <div class="result-arrow">›</div>
+          </div>
+          <div class="settings-item" onclick="window.open('https://pillstack.kr/terms.html', '_blank')">
+            <div>
+              <div class="settings-label">이용약관</div>
+            </div>
+            <div class="result-arrow">›</div>
+          </div>
         </div>
 
         <!-- 면책 -->
