@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PillStack 인증</title>
+  <style>
+    body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #0a0a0a; color: #fff; font-family: -apple-system, sans-serif; }
+    .loading { text-align: center; }
+    .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #4ADE80; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    p { opacity: 0.7; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="loading">
+    <div class="spinner"></div>
+    <p>앱으로 돌아가는 중...</p>
+  </div>
+  <script>
+    // Supabase OAuth 콜백 처리
+    // URL: https://pillstack.kr/auth-callback#access_token=...
+    const hash = window.location.hash.substring(1);
+    if (hash) {
+      // 커스텀 스킴으로 리다이렉트 → 앱이 열림
+      const deepLink = 'kr.pillstack://#' + hash;
+      window.location.href = deepLink;
+      
+      // 3초 후에도 앱이 안 열리면 웹으로 폴백
+      setTimeout(() => {
+        window.location.href = 'https://pillstack.kr/#' + hash;
+      }, 3000);
+    } else {
+      // hash 없으면 메인으로
+      window.location.href = 'https://pillstack.kr';
+    }
+  </script>
+</body>
+</html>

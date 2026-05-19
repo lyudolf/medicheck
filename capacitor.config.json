@@ -2,10 +2,6 @@
   "appId": "kr.pillstack",
   "appName": "PillStack",
   "webDir": "dist",
-  "server": {
-    "url": "https://pillstack.kr",
-    "cleartext": false
-  },
   "android": {
     "allowMixedContent": false
   }
