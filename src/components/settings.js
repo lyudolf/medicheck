@@ -50,6 +50,23 @@ export function renderSettings() {
           </div>
         </div>
 
+        <!-- 알림 설정 -->
+        <div class="settings-group animate-in animate-in-delay-1">
+          <div class="settings-group-title">알림</div>
+          <div class="settings-item">
+            <div>
+              <div class="settings-label">🔔 복용 알림</div>
+              <div class="settings-desc">설정한 시간에 복용 알림을 받습니다</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="noti-toggle"
+                ${localStorage.getItem('pillstack_noti_enabled') !== 'false' ? 'checked' : ''}
+                onchange="window.app.toggleNotification(this.checked)">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
         <!-- 앱 정보 -->
         <div class="settings-group animate-in animate-in-delay-1">
           <div class="settings-group-title">앱 정보</div>

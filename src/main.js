@@ -15,11 +15,12 @@ import { showDisclaimerModal, agreeDisclaimer } from './components/disclaimer.js
 import { renderLogin } from './components/login.js';
 import { analyzeInteractions, getTimingRecommendation } from './engine/analyzer.js';
 import { publicDataAPI } from './api/publicData.js';
-import { saveReminderTime, initServiceWorker, requestNotificationPermission, syncRemindersToSW, saveScheduleForSW } from './services/reminder.js';
+import { saveReminderTime, initServiceWorker, requestNotificationPermission, syncRemindersToSW, saveScheduleForSW, loadReminders } from './services/reminder.js';
 import { signInWithGoogle, signInWithKakao, signOut, getSession, onAuthStateChange } from './lib/supabase.js';
 import { fetchSupplements, insertSupplement, deleteSupplement, fetchAnalysis, upsertAnalysis, deleteAnalysis } from './services/db.js';
 import { initAdMob, showRewardedAd, checkAnalysisQuota, incrementAnalysisCount, FREE_DAILY_LIMIT } from './services/admob.js';
 import { initPushNotifications } from './services/fcm.js';
+import { initLocalNotifications, scheduleReminders } from './services/localNotification.js';
 
 // ─── State Management ───
 const STORAGE_KEY = 'medicheck_supplements';
@@ -136,6 +137,24 @@ export function removeSupplement(id) {
   }
 }
 
+// ─── Native Local Notification Helper ───
+async function _scheduleNativeReminders(timingResult) {
+  if (!timingResult?.schedule) return;
+  const times = loadReminders();
+  const slotMap = { '아침': 'morning', '저녁': 'evening', '취침 전': 'bedtime' };
+
+  const schedule = timingResult.schedule.map(s => {
+    const slot = slotMap[s.label] || 'morning';
+    return {
+      slot,
+      time: times[slot],
+      supplements: s.supplements.map(sup => ({ name: sup.name })),
+    };
+  }).filter(s => s.supplements.length > 0);
+
+  scheduleReminders(schedule).catch(console.warn);
+}
+
 // ─── Analysis ───
 async function startAnalysis() {
   if (state.supplements.length < 2) {
@@ -163,6 +182,8 @@ async function startAnalysis() {
     localStorage.setItem('pillstack_analysis_result', JSON.stringify(state.analysisResult));
     saveTimingResult(state.timingResult);
     saveScheduleForSW(state.timingResult);
+    // 네이티브 로컬 알림 등록
+    _scheduleNativeReminders(state.timingResult);
     // Supabase 저장 (로그인 시)
     if (state.user) {
       upsertAnalysis(state.user.id, state.analysisResult, state.timingResult)
@@ -631,6 +652,14 @@ window.app = {
     URL.revokeObjectURL(url);
     showToast('데이터를 내보냈습니다.', 'success');
   },
+  toggleNotification: async (enabled) => {
+    const { setNotificationEnabled } = await import('./services/localNotification.js');
+    setNotificationEnabled(enabled);
+    if (enabled && state.timingResult) {
+      _scheduleNativeReminders(state.timingResult);
+    }
+    showToast(enabled ? '🔔 복용 알림이 켜졌습니다.' : '🔕 복용 알림이 꺼졌습니다.', 'info');
+  },
 };
 
 // ─── Init ───
@@ -687,6 +716,13 @@ async function init() {
 
   // FCM 푸시 알림 초기화 (백그라운드, 네이티브 앱에서만 동작)
   initPushNotifications().catch(console.warn);
+
+  // 로컬 알림 초기화 + 기존 스케줄 복원
+  initLocalNotifications().then(() => {
+    if (state.timingResult) {
+      _scheduleNativeReminders(state.timingResult);
+    }
+  }).catch(console.warn);
 
   // Health check 백그라운드 (UI 블로킹 없음)
   publicDataAPI.checkHealth()
