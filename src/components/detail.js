@@ -106,7 +106,7 @@ function _renderDetailModal() {
         <!-- 하단 액션 -->
         <div class="detail-actions">
           ${isShelfView ? `
-            <a class="btn-coupang" href="https://link.coupang.com/re/AFFTAG?lptag=AF7110745&subId=pillstack&pageType=SRP&q=${encodeURIComponent(p.name)}" target="_blank" rel="noopener">
+            <a class="btn-coupang" href="https://www.coupang.com/np/search?component=&q=${encodeURIComponent(p.name)}" target="_blank" rel="noopener">
               🛒 쿠팡에서 검색
             </a>
             <p class="coupang-disclaimer">이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받을 수 있습니다.</p>

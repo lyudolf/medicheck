@@ -321,7 +321,8 @@ function refillSupplement(id) {
 function getCoupangSearchUrl(productName) {
   const keyword = encodeURIComponent(productName);
   // 쿠팡 파트너스 ID는 추후 .env에서 설정
-  return `https://link.coupang.com/re/AFFTAG?lptag=AF7110745&subId=pillstack&pageType=SRP&q=${keyword}`;
+  // TODO: 파트너스 승인 후 Deeplink API 연동 예정 (AF7110745)
+  return `https://www.coupang.com/np/search?component=&q=${keyword}`;
 }
 
 // ─── UI Helpers ───

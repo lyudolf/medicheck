@@ -201,5 +201,5 @@ function _renderRepurchaseBanner(supplements) {
 }
 
 function _getCoupangUrl(productName) {
-  return `https://link.coupang.com/re/AFFTAG?lptag=AF7110745&subId=pillstack&pageType=SRP&q=${encodeURIComponent(productName)}`;
+  return `https://www.coupang.com/np/search?component=&q=${encodeURIComponent(productName)}`;
 }
