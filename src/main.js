@@ -293,6 +293,10 @@ function setReminderTime(slot, time) {
   saveReminderTime(slot, time);
   const labels = { morning: '아침', evening: '저녁', bedtime: '취침 전' };
   showToast(`⏰ ${labels[slot] || slot} 복용 시간: ${time}`, 'success');
+  // 네이티브 알림 재등록
+  if (state.timingResult) {
+    _scheduleNativeReminders(state.timingResult);
+  }
 }
 
 function toggleDoseCheck(slot) {
