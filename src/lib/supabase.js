@@ -3,9 +3,26 @@
 // ═══════════════════════════════════════════
 
 import { createClient } from '@supabase/supabase-js';
-import { Capacitor } from '@capacitor/core';
-import { Browser } from '@capacitor/browser';
-import { App } from '@capacitor/app';
+
+// Capacitor: 동적 import (Vercel 웹 빌드 호환)
+let Capacitor = null, Browser = null, App = null;
+let isNative = false;
+
+const _initCapacitor = (async () => {
+  try {
+    const core = await import('@capacitor/core');
+    Capacitor = core.Capacitor;
+    isNative = Capacitor.isNativePlatform();
+    if (isNative) {
+      const browserMod = await import('@capacitor/browser');
+      Browser = browserMod.Browser;
+      const appMod = await import('@capacitor/app');
+      App = appMod.App;
+    }
+  } catch (e) {
+    // 웹 환경: Capacitor 없음
+  }
+})();
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -31,33 +48,36 @@ export { supabase };
 
 // ─── Deep Link Listener (Capacitor) ───
 
-if (Capacitor.isNativePlatform()) {
-  App.addListener('appUrlOpen', async ({ url }) => {
-    // OAuth 콜백: kr.pillstack://#access_token=...
-    if (url.includes('access_token') && url.includes('refresh_token')) {
-      // URL fragment에서 토큰 추출
-      const hashPart = url.split('#')[1];
-      if (hashPart) {
-        const params = new URLSearchParams(hashPart);
-        const accessToken = params.get('access_token');
-        const refreshToken = params.get('refresh_token');
-        if (accessToken && refreshToken) {
-          await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
+_initCapacitor.then(() => {
+  if (isNative && App) {
+    App.addListener('appUrlOpen', async ({ url }) => {
+      // OAuth 콜백: kr.pillstack://#access_token=...
+      if (url.includes('access_token') && url.includes('refresh_token')) {
+        // URL fragment에서 토큰 추출
+        const hashPart = url.split('#')[1];
+        if (hashPart) {
+          const params = new URLSearchParams(hashPart);
+          const accessToken = params.get('access_token');
+          const refreshToken = params.get('refresh_token');
+          if (accessToken && refreshToken) {
+            await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+          }
         }
+        // 인앱 브라우저 닫기
+        try { await Browser.close(); } catch (e) {}
       }
-      // 인앱 브라우저 닫기
-      try { await Browser.close(); } catch (e) {}
-    }
-  });
-}
+    });
+  }
+});
 
 // ─── Auth Helpers ───
 
 export async function signInWithGoogle() {
-  if (Capacitor.isNativePlatform()) {
+  await _initCapacitor;
+  if (isNative) {
     // 네이티브: 인앱 브라우저 사용
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -83,7 +103,8 @@ export async function signInWithGoogle() {
 }
 
 export async function signInWithKakao() {
-  if (Capacitor.isNativePlatform()) {
+  await _initCapacitor;
+  if (isNative) {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'kakao',
       options: {
