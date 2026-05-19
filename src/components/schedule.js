@@ -83,13 +83,10 @@ export function renderSchedule() {
                     <div class="schedule-manage-desc">${slot.supplements.length}개 영양제</div>
                   </div>
                 </div>
-                <div class="time-picker-wrap">
-                  <input type="time" class="time-picker-input"
-                         value="${savedTime}"
-                         data-slot="${slotKey}"
-                         onchange="window.app.setReminderTime('${slotKey}', this.value)"
-                         title="${slot.label} 복용 시간 설정">
-                </div>
+                <button class="time-picker-btn" onclick="window.app.openTimePicker('${slotKey}', '${savedTime}')">
+                  <span class="time-picker-display">${savedTime}</span>
+                  <span class="time-picker-icon">🕐</span>
+                </button>
               </div>
               <div class="schedule-manage-pills">
                 ${slot.supplements.map(s => `

@@ -299,6 +299,88 @@ function setReminderTime(slot, time) {
   }
 }
 
+// ─── Custom Time Picker Modal ───
+let _tpSlot = null;
+let _tpHour = 8;
+let _tpMin = 0;
+
+function openTimePicker(slot, currentTime) {
+  _tpSlot = slot;
+  const parts = (currentTime || '08:00').split(':');
+  _tpHour = parseInt(parts[0]) || 8;
+  _tpMin = parseInt(parts[1]) || 0;
+  _renderTimePickerModal();
+  requestAnimationFrame(() => {
+    const overlay = document.getElementById('time-picker-overlay');
+    if (overlay) overlay.classList.add('active');
+  });
+}
+
+function closeTimePicker() {
+  const overlay = document.getElementById('time-picker-overlay');
+  if (overlay) {
+    overlay.classList.remove('active');
+    setTimeout(() => overlay.remove(), 300);
+  }
+}
+
+function tpAdjust(field, delta) {
+  if (field === 'hour') {
+    _tpHour = (_tpHour + delta + 24) % 24;
+  } else {
+    _tpMin = (_tpMin + delta + 60) % 60;
+  }
+  const hEl = document.getElementById('tp-hour-val');
+  const mEl = document.getElementById('tp-min-val');
+  if (hEl) hEl.textContent = String(_tpHour).padStart(2, '0');
+  if (mEl) mEl.textContent = String(_tpMin).padStart(2, '0');
+}
+
+function tpConfirm() {
+  const time = `${String(_tpHour).padStart(2, '0')}:${String(_tpMin).padStart(2, '0')}`;
+  setReminderTime(_tpSlot, time);
+  closeTimePicker();
+  // Update the button display
+  render();
+}
+
+function _renderTimePickerModal() {
+  // Remove existing
+  const existing = document.getElementById('time-picker-overlay');
+  if (existing) existing.remove();
+
+  const labels = { morning: '🌅 아침', evening: '🌙 저녁', bedtime: '😴 취침 전' };
+  const label = labels[_tpSlot] || _tpSlot;
+
+  const html = `
+    <div class="time-picker-overlay" id="time-picker-overlay" onclick="if(event.target===this) window.app.closeTimePicker()">
+      <div class="time-picker-modal">
+        <div class="time-picker-modal-header">
+          <div class="time-picker-modal-title">${label} 복용 시간</div>
+          <button class="time-picker-modal-close" onclick="window.app.closeTimePicker()">✕</button>
+        </div>
+        <div class="time-picker-wheels">
+          <div class="time-picker-wheel">
+            <div class="time-picker-wheel-label">시</div>
+            <button class="time-picker-wheel-btn" onclick="window.app.tpAdjust('hour', 1)">▲</button>
+            <div class="time-picker-wheel-value" id="tp-hour-val">${String(_tpHour).padStart(2, '0')}</div>
+            <button class="time-picker-wheel-btn" onclick="window.app.tpAdjust('hour', -1)">▼</button>
+          </div>
+          <div class="time-picker-sep">:</div>
+          <div class="time-picker-wheel">
+            <div class="time-picker-wheel-label">분</div>
+            <button class="time-picker-wheel-btn" onclick="window.app.tpAdjust('min', 5)">▲</button>
+            <div class="time-picker-wheel-value" id="tp-min-val">${String(_tpMin).padStart(2, '0')}</div>
+            <button class="time-picker-wheel-btn" onclick="window.app.tpAdjust('min', -5)">▼</button>
+          </div>
+        </div>
+        <button class="time-picker-confirm" onclick="window.app.tpConfirm()">확인</button>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
 function toggleDoseCheck(slot) {
   const today = new Date().toISOString().slice(0, 10);
   const key = 'medicheck_checked_' + today;
@@ -525,6 +607,10 @@ window.app = {
   startOCR,
   refreshApiStatus,
   setReminderTime,
+  openTimePicker,
+  closeTimePicker,
+  tpAdjust,
+  tpConfirm,
   toggleDoseCheck,
   updateSupplementInventory,
   refillSupplement,
