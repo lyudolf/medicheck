@@ -299,7 +299,7 @@ function setReminderTime(slot, time) {
   }
 }
 
-// ─── Custom Time Picker Modal ───
+// ─── Custom Time Picker Modal (iOS Wheel Style) ───
 let _tpSlot = null;
 let _tpHour = 8;
 let _tpMin = 0;
@@ -313,6 +313,9 @@ function openTimePicker(slot, currentTime) {
   requestAnimationFrame(() => {
     const overlay = document.getElementById('time-picker-overlay');
     if (overlay) overlay.classList.add('active');
+    // Scroll to initial values
+    _tpScrollTo('tp-hour-wheel', _tpHour, 24);
+    _tpScrollTo('tp-min-wheel', _tpMin / 5, 12);
   });
 }
 
@@ -324,54 +327,79 @@ function closeTimePicker() {
   }
 }
 
-function tpAdjust(field, delta) {
-  if (field === 'hour') {
-    _tpHour = (_tpHour + delta + 24) % 24;
+function _tpScrollTo(id, index, total) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const itemH = 44;
+  el.scrollTop = index * itemH;
+}
+
+function _tpHandleScroll(type) {
+  const id = type === 'hour' ? 'tp-hour-wheel' : 'tp-min-wheel';
+  const el = document.getElementById(id);
+  if (!el) return;
+  const itemH = 44;
+  const idx = Math.round(el.scrollTop / itemH);
+  if (type === 'hour') {
+    _tpHour = ((idx % 24) + 24) % 24;
   } else {
-    _tpMin = (_tpMin + delta + 60) % 60;
+    _tpMin = (((idx % 12) + 12) % 12) * 5;
   }
-  const hEl = document.getElementById('tp-hour-val');
-  const mEl = document.getElementById('tp-min-val');
-  if (hEl) hEl.textContent = String(_tpHour).padStart(2, '0');
-  if (mEl) mEl.textContent = String(_tpMin).padStart(2, '0');
 }
 
 function tpConfirm() {
+  // Read final scroll positions
+  _tpHandleScroll('hour');
+  _tpHandleScroll('min');
   const time = `${String(_tpHour).padStart(2, '0')}:${String(_tpMin).padStart(2, '0')}`;
   setReminderTime(_tpSlot, time);
   closeTimePicker();
-  // Update the button display
   render();
 }
 
 function _renderTimePickerModal() {
-  // Remove existing
   const existing = document.getElementById('time-picker-overlay');
   if (existing) existing.remove();
 
   const labels = { morning: '🌅 아침', evening: '🌙 저녁', bedtime: '😴 취침 전' };
   const label = labels[_tpSlot] || _tpSlot;
 
+  // Generate hour items (0-23)
+  const hours = Array.from({ length: 24 }, (_, i) =>
+    `<div class="tp-wheel-item" data-val="${i}">${String(i).padStart(2, '0')}</div>`
+  ).join('');
+
+  // Generate minute items (0-55, step 5)
+  const mins = Array.from({ length: 12 }, (_, i) =>
+    `<div class="tp-wheel-item" data-val="${i * 5}">${String(i * 5).padStart(2, '0')}</div>`
+  ).join('');
+
   const html = `
     <div class="time-picker-overlay" id="time-picker-overlay" onclick="if(event.target===this) window.app.closeTimePicker()">
       <div class="time-picker-modal">
+        <div class="tp-handle"></div>
         <div class="time-picker-modal-header">
           <div class="time-picker-modal-title">${label} 복용 시간</div>
           <button class="time-picker-modal-close" onclick="window.app.closeTimePicker()">✕</button>
         </div>
-        <div class="time-picker-wheels">
-          <div class="time-picker-wheel">
-            <div class="time-picker-wheel-label">시</div>
-            <button class="time-picker-wheel-btn" onclick="window.app.tpAdjust('hour', 1)">▲</button>
-            <div class="time-picker-wheel-value" id="tp-hour-val">${String(_tpHour).padStart(2, '0')}</div>
-            <button class="time-picker-wheel-btn" onclick="window.app.tpAdjust('hour', -1)">▼</button>
+        <div class="tp-wheel-container">
+          <div class="tp-wheel-highlight"></div>
+          <div class="tp-wheel-col">
+            <div class="tp-wheel-label">시간</div>
+            <div class="tp-wheel-scroll" id="tp-hour-wheel">
+              <div class="tp-wheel-pad"></div>
+              ${hours}
+              <div class="tp-wheel-pad"></div>
+            </div>
           </div>
-          <div class="time-picker-sep">:</div>
-          <div class="time-picker-wheel">
-            <div class="time-picker-wheel-label">분</div>
-            <button class="time-picker-wheel-btn" onclick="window.app.tpAdjust('min', 5)">▲</button>
-            <div class="time-picker-wheel-value" id="tp-min-val">${String(_tpMin).padStart(2, '0')}</div>
-            <button class="time-picker-wheel-btn" onclick="window.app.tpAdjust('min', -5)">▼</button>
+          <div class="tp-wheel-colon">:</div>
+          <div class="tp-wheel-col">
+            <div class="tp-wheel-label">분</div>
+            <div class="tp-wheel-scroll" id="tp-min-wheel">
+              <div class="tp-wheel-pad"></div>
+              ${mins}
+              <div class="tp-wheel-pad"></div>
+            </div>
           </div>
         </div>
         <button class="time-picker-confirm" onclick="window.app.tpConfirm()">확인</button>
@@ -379,6 +407,18 @@ function _renderTimePickerModal() {
     </div>
   `;
   document.body.insertAdjacentHTML('beforeend', html);
+
+  // Add scroll snap behavior after render
+  const hWheel = document.getElementById('tp-hour-wheel');
+  const mWheel = document.getElementById('tp-min-wheel');
+  if (hWheel) {
+    hWheel.addEventListener('scrollend', () => _tpHandleScroll('hour'));
+    hWheel.addEventListener('touchend', () => setTimeout(() => _tpHandleScroll('hour'), 150));
+  }
+  if (mWheel) {
+    mWheel.addEventListener('scrollend', () => _tpHandleScroll('min'));
+    mWheel.addEventListener('touchend', () => setTimeout(() => _tpHandleScroll('min'), 150));
+  }
 }
 
 function toggleDoseCheck(slot) {
@@ -609,7 +649,6 @@ window.app = {
   setReminderTime,
   openTimePicker,
   closeTimePicker,
-  tpAdjust,
   tpConfirm,
   toggleDoseCheck,
   updateSupplementInventory,
