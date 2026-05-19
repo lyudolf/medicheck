@@ -292,11 +292,10 @@ function _renderTimeline(timing) {
           <div class="time-label-row">
             <div class="time-label">${slot.time}</div>
             <div class="time-picker-wrap">
-              <input type="time" class="time-picker-input"
-                     value="${savedTime}"
-                     data-slot="${slotKey}"
-                     onchange="window.app.setReminderTime('${slotKey}', this.value)"
-                     title="${slot.label} 복용 시간 설정">
+              <button class="time-picker-btn" onclick="window.app.openTimePicker('${slotKey}', '${savedTime}')">
+                <span class="time-picker-display">${savedTime}</span>
+                <span class="time-picker-icon">🕐</span>
+              </button>
             </div>
           </div>
           <div class="time-supplements">
