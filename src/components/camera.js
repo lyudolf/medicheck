@@ -4,6 +4,7 @@
 // ═══════════════════════════════════════════
 
 import { CATEGORIES } from '../data/fallbackDB.js';
+import { apiUrl } from '../utils/api.js';
 
 let capturedImageData = null;
 
@@ -142,7 +143,7 @@ export async function startOCR() {
   if (matchesEl) matchesEl.innerHTML = '';
 
   try {
-    const res = await fetch('/api/ocr/analyze', {
+    const res = await fetch(apiUrl('/api/ocr/analyze'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image: capturedImageData }),

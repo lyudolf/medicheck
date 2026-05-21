@@ -5,6 +5,7 @@
 
 import { getSupplementIcon } from '../utils/icons.js';
 import { CATEGORIES } from '../data/fallbackDB.js';
+import { apiUrl } from '../utils/api.js';
 
 let currentProduct = null;
 let detailData = null;
@@ -51,7 +52,7 @@ export function closeProductDetail() {
 
 async function _fetchDetail(registNo) {
   try {
-    const res = await fetch(`/api/supplements/detail?registNo=${registNo}`);
+    const res = await fetch(apiUrl(`/api/supplements/detail?registNo=${registNo}`));
     const data = await res.json();
     detailData = data.item;
   } catch (err) {

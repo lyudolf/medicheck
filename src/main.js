@@ -21,6 +21,7 @@ import { fetchSupplements, insertSupplement, deleteSupplement, fetchAnalysis, up
 import { initAdMob, showRewardedAd, checkAnalysisQuota, incrementAnalysisCount, FREE_DAILY_LIMIT } from './services/admob.js';
 import { initPushNotifications } from './services/fcm.js';
 import { initLocalNotifications, scheduleReminders } from './services/localNotification.js';
+import { apiUrl } from './utils/api.js';
 
 // ─── State Management ───
 const STORAGE_KEY = 'medicheck_supplements';
@@ -734,7 +735,7 @@ window.app = {
 
     try {
       const session = await getSession();
-      const res = await fetch('/api/account/delete', {
+      const res = await fetch(apiUrl('/api/account/delete'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

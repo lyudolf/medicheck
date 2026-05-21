@@ -5,6 +5,7 @@
 
 import { INGREDIENTS, INTERACTIONS } from '../data/fallbackDB.js';
 import { publicDataAPI } from '../api/publicData.js';
+import { apiUrl } from '../utils/api.js';
 
 /**
  * 등록된 영양제들의 성분 간 상호작용 분석
@@ -113,7 +114,7 @@ export async function analyzeInteractions(supplements) {
   // 4. Gemini 성분 과다/충돌 분석 (서버 API 호출)
   let ingredientAnalysis = { warnings: [], cautions: [], synergies: [], extractedNutrients: [], deficiencies: [] };
   try {
-    const geminiRes = await fetch('/api/analyze/ingredients', {
+    const geminiRes = await fetch(apiUrl('/api/analyze/ingredients'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

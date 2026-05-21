@@ -5,6 +5,7 @@
 
 import { CATEGORIES } from '../data/fallbackDB.js';
 import { getSupplementIcon } from '../utils/icons.js';
+import { apiUrl } from '../utils/api.js';
 
 let searchTimeout = null;
 let currentCategory = 'all';
@@ -179,7 +180,7 @@ async function _loadItems(query, page, replace = false) {
     if (query) params.set('keyword', query);
     if (currentCategory !== 'all') params.set('category', currentCategory);
 
-    const res = await fetch(`/api/supplements/search?${params}`);
+    const res = await fetch(apiUrl(`/api/supplements/search?${params}`));
     const data = await res.json();
 
     if (replace) {

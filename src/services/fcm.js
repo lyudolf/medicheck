@@ -2,6 +2,8 @@
 // FCM Push Notification Service
 // ═══════════════════════════════════════════
 
+import { apiUrl } from '../utils/api.js';
+
 let pushModule = null;
 
 /**
@@ -75,7 +77,7 @@ async function saveFCMToken(token) {
     if (!session?.access_token) return;
 
     // Vercel API로 토큰 저장
-    await fetch('/api/fcm/register', {
+    await fetch(apiUrl('/api/fcm/register'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
