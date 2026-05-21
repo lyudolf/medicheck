@@ -2,6 +2,9 @@
   "appId": "kr.pillstack",
   "appName": "PillStack",
   "webDir": "dist",
+  "server": {
+    "allowNavigation": ["pillstack.kr", "*.pillstack.kr", "*.supabase.co"]
+  },
   "android": {
     "allowMixedContent": false
   }
