@@ -10,7 +10,7 @@ function isCapacitor() {
 
 function getApiBase() {
   if (isCapacitor()) {
-    return 'https://pillstack.kr';
+    return 'https://www.pillstack.kr';
   }
   // 웹: dev(localhost:5173) or prod(pillstack.kr) — 상대 URL 사용
   return '';
