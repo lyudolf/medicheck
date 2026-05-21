@@ -22,6 +22,7 @@ import { initAdMob, showRewardedAd, checkAnalysisQuota, incrementAnalysisCount, 
 import { initPushNotifications } from './services/fcm.js';
 import { initLocalNotifications, scheduleReminders } from './services/localNotification.js';
 import { apiUrl } from './utils/api.js';
+import { initAnalytics, logEvent, logScreenView, setUserId } from './services/analytics.js';
 
 // ─── State Management ───
 const STORAGE_KEY = 'medicheck_supplements';
@@ -114,6 +115,8 @@ export function addSupplement(supplement) {
     insertSupplement(state.user.id, enriched).catch(e => console.warn('Supabase insert 실패:', e));
     deleteAnalysis(state.user.id).catch(() => {});
   }
+  // Analytics: 영양제 등록
+  logEvent('supplement_added', { name: supplement.name, total_count: state.supplements.length });
   showToast(`✅ ${supplement.name} 추가됨!`, 'success');
 }
 
@@ -133,6 +136,8 @@ export function removeSupplement(id) {
       deleteSupplement(state.user.id, id).catch(e => console.warn('Supabase delete 실패:', e));
       deleteAnalysis(state.user.id).catch(() => {});
     }
+    // Analytics: 영양제 삭제
+    logEvent('supplement_removed', { name, remaining_count: state.supplements.length });
     showToast(`🗑️ ${name} 삭제됨`, 'info');
     render();
   }
@@ -175,6 +180,8 @@ async function startAnalysis() {
   }
 
   showLoading(true);
+  // Analytics: 분석 시작
+  logEvent('analysis_started', { supplement_count: state.supplements.length });
 
   try {
     state.analysisResult = await analyzeInteractions(state.supplements);
@@ -191,6 +198,8 @@ async function startAnalysis() {
         .catch(e => console.warn('Supabase analysis upsert 실패:', e));
     }
     incrementAnalysisCount();
+    // Analytics: 분석 완료
+    logEvent('analysis_completed', { score: state.analysisResult.score, conflict_count: state.analysisResult.conflictCount });
     state.currentPage = 'analysis';
     render();
   } catch (err) {
@@ -822,6 +831,9 @@ async function init() {
       if (event === 'SIGNED_IN' && state.user) {
         showToast(`👋 ${state.user?.user_metadata?.full_name || '사용자'}님 환영합니다!`, 'success');
         showDisclaimerModal();
+        // Analytics: 로그인
+        setUserId(state.user.id);
+        logEvent('login', { method: state.user.app_metadata?.provider || 'unknown' });
         await loadUserData(state.user.id);
       } else if (event === 'SIGNED_OUT') {
         state.supplements = [];
@@ -846,6 +858,9 @@ async function init() {
 
   // FCM 푸시 알림 초기화 (백그라운드, 네이티브 앱에서만 동작)
   initPushNotifications().catch(console.warn);
+
+  // Firebase Analytics 초기화 (백그라운드)
+  initAnalytics().catch(console.warn);
 
   // 로컬 알림 초기화 + 기존 스케줄 복원
   initLocalNotifications().then(() => {
