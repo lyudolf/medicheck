@@ -197,10 +197,14 @@ async function _loadItems(query, page, replace = false) {
   } catch (err) {
     console.warn('검색 오류:', err);
     if (replace) {
+      const debugUrl = apiUrl(`/api/supplements/search?keyword=test`);
       container.innerHTML = `
         <div class="no-results">
           <div class="no-results-icon">⚠️</div>
           <p>데이터를 불러오지 못했습니다.</p>
+          <p style="font-size:0.65rem;color:var(--text-muted);margin-top:8px;word-break:break-all;">
+            ${err.message}<br>URL: ${debugUrl}
+          </p>
         </div>
       `;
     }
