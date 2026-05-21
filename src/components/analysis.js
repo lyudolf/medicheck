@@ -1,5 +1,6 @@
 // ═══════════════════════════════════════════
 // Analysis Component - 분석 결과 대시보드
+// v2: summary → optimizedRoutine → technicalAnalysis
 // ═══════════════════════════════════════════
 
 import { loadReminders } from '../services/reminder.js';
@@ -39,9 +40,29 @@ export function renderAnalysis(analysisResult, timingResult) {
 
   const { score, interactions, conflictCount, synergyCount, summary, ingredientAnalysis } = analysisResult;
   const scoreClass = score >= 80 ? 'good' : score >= 60 ? 'warn' : 'bad';
+
+  // 새 구조 데이터 추출
+  const geminiSummary = ingredientAnalysis?.summary || {};
+  const techAnalysis = ingredientAnalysis?.technicalAnalysis || [];
+  const optimizedRoutine = ingredientAnalysis?.optimizedRoutine || [];
   const deficiencies = ingredientAnalysis?.deficiencies || [];
+  const extractedNutrients = ingredientAnalysis?.extractedNutrients || [];
+
   const missingCount = deficiencies.filter(d => d.status === 'missing').length;
-  const partialCount = deficiencies.filter(d => d.status === 'partial').length;
+  const critCount = techAnalysis.filter(t => t.level === 'critical').length;
+  const cautCount = techAnalysis.filter(t => t.level === 'caution').length;
+
+  // 점수 (Gemini healthScore 우선, 없으면 로컬 score)
+  const displayScore = geminiSummary.healthScore || score;
+  const displayScoreClass = displayScore >= 80 ? 'good' : displayScore >= 60 ? 'warn' : 'bad';
+  const scoreGrade = displayScore >= 90 ? '매우 좋음' : displayScore >= 80 ? '좋음' : displayScore >= 60 ? '개선 필요' : '주의 필요';
+
+  // Gemini summary 또는 로컬 fallback
+  const headlineText = geminiSummary.headline || summary || '';
+  const keyActionText = geminiSummary.keyAction || '';
+
+  // 시간표: Gemini optimizedRoutine 우선, 없으면 기존 timingResult
+  const hasOptimizedRoutine = optimizedRoutine.length > 0;
 
   return `
     <div class="page active" id="page-analysis">
@@ -54,13 +75,27 @@ export function renderAnalysis(analysisResult, timingResult) {
       <div class="page-content">
         <!-- Score Circle -->
         <div class="analysis-header animate-in">
-          <div class="score-circle ${scoreClass}">
-            <span class="score-label">안전도</span>
-            <span class="score-value">${score}</span>
+          <div class="score-circle ${displayScoreClass}">
+            <span class="score-label">${scoreGrade}</span>
+            <span class="score-value">${displayScore}</span>
             <span class="score-max">/ 100</span>
           </div>
-          <p style="color:var(--text-secondary);font-size:0.85rem;margin-top:8px;">${summary}</p>
         </div>
+
+        <!-- Summary Card (새 구조) -->
+        ${headlineText ? `
+        <div class="card animate-in animate-in-delay-1" style="margin-bottom:16px;background:var(--card-gradient,var(--card-bg));border:1px solid rgba(99,102,241,0.2);">
+          <div style="font-size:0.85rem;font-weight:600;line-height:1.6;margin-bottom:${keyActionText ? '10px' : '0'};">${headlineText}</div>
+          ${keyActionText ? `
+            <div style="display:flex;align-items:flex-start;gap:8px;font-size:0.78rem;color:var(--accent);background:rgba(99,102,241,0.08);border-radius:10px;padding:10px 12px;">
+              <span>👉</span>
+              <span>${keyActionText}</span>
+            </div>
+          ` : ''}
+        </div>
+        ` : `
+        <p style="color:var(--text-secondary);font-size:0.85rem;margin:0 0 16px;text-align:center;">${summary}</p>
+        `}
 
         <!-- Stats -->
         <div style="display:flex;gap:8px;margin-bottom:20px;" class="animate-in animate-in-delay-1">
@@ -90,40 +125,42 @@ export function renderAnalysis(analysisResult, timingResult) {
             🧪 심층 분석
           </button>
           <button class="analysis-tab" data-tab="deficiency" onclick="window.app.switchAnalysisTab('deficiency')">
-            🧬 결핍 영양소 ${missingCount > 0 ? '<span class="tab-badge">' + missingCount + '</span>' : ''}
+            🧬 결핍 체크 ${missingCount > 0 ? '<span class="tab-badge">' + missingCount + '</span>' : ''}
           </button>
         </div>
 
-        <!-- Tab: 추천 복용 스케줄 -->
+        <!-- Tab: 복용 스케줄 -->
         <div class="analysis-tab-content" id="tab-schedule">
-          ${timingResult ? `
-            <div class="schedule-section animate-in">
-              <h3><span>⏰</span> 추천 복용 스케줄</h3>
-              <p style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:16px;line-height:1.5;">
-                시간을 탭하여 복용 알림을 설정하세요.
-              </p>
-              ${_renderTimeline(timingResult)}
-              ${timingResult.notes?.length > 0 ? `
-                <div style="margin-top:16px;">
-                  ${timingResult.notes.map((note) => `
-                    <div class="card" style="margin-bottom:8px;font-size:0.8rem;color:var(--text-secondary);line-height:1.5;">
-                      ${note}
-                    </div>
-                  `).join('')}
-                </div>
-              ` : ''}
-            </div>
-          ` : `
-            <div class="empty-state" style="padding:40px 0;">
-              <div style="font-size:2rem;margin-bottom:12px;">⏰</div>
-              <p>복용 스케줄이 없습니다.<br>홈에서 분석을 실행하면 자동 생성됩니다.</p>
-            </div>
-          `}
+          ${hasOptimizedRoutine ? _renderOptimizedRoutine(optimizedRoutine) : (
+            timingResult ? `
+              <div class="schedule-section animate-in">
+                <h3><span>⏰</span> 추천 복용 스케줄</h3>
+                <p style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:16px;line-height:1.5;">
+                  시간을 탭하여 복용 알림을 설정하세요.
+                </p>
+                ${_renderTimeline(timingResult)}
+                ${timingResult.notes?.length > 0 ? `
+                  <div style="margin-top:16px;">
+                    ${timingResult.notes.map((note) => `
+                      <div class="card" style="margin-bottom:8px;font-size:0.8rem;color:var(--text-secondary);line-height:1.5;">
+                        ${note}
+                      </div>
+                    `).join('')}
+                  </div>
+                ` : ''}
+              </div>
+            ` : `
+              <div class="empty-state" style="padding:40px 0;">
+                <div style="font-size:2rem;margin-bottom:12px;">⏰</div>
+                <p>복용 스케줄이 없습니다.<br>홈에서 분석을 실행하면 자동 생성됩니다.</p>
+              </div>
+            `
+          )}
         </div>
 
         <!-- Tab: 심층 분석 -->
         <div class="analysis-tab-content" id="tab-deep" style="display:none;">
-          <!-- Interactions -->
+          <!-- 로컬 DB + DUR 상호작용 -->
           ${interactions.length > 0 ? `
             <div class="section-title animate-in animate-in-delay-2">
               <span class="section-icon">🔗</span>
@@ -134,8 +171,8 @@ export function renderAnalysis(analysisResult, timingResult) {
             </div>
           ` : ''}
 
-          <!-- Gemini 성분 분석 결과 -->
-          ${_renderIngredientAnalysis(ingredientAnalysis)}
+          <!-- Gemini AI Triage 분석 -->
+          ${_renderTechnicalAnalysis(techAnalysis, extractedNutrients, ingredientAnalysis?.source)}
         </div>
 
         <!-- Tab: 결핍 영양소 -->
@@ -180,28 +217,84 @@ function _renderInteractionCard(item, index) {
   `;
 }
 
-// ─── Gemini 성분 분석 렌더 ───
-function _renderIngredientAnalysis(ia) {
-  if (!ia) return '';
+// ─── Gemini Optimized Routine 렌더 ───
+function _renderOptimizedRoutine(routine) {
+  const reminders = loadReminders();
+  const slotMap = { '아침': 'morning', '오전': 'morning', '저녁': 'evening', '오후': 'evening', '취침': 'bedtime' };
 
-  const hasWarnings  = ia.warnings?.length  > 0;
-  const hasCautions  = ia.cautions?.length  > 0;
-  const hasSynergies = ia.synergies?.length > 0;
-  const hasNutrients = ia.extractedNutrients?.length > 0;
+  function getSlotKey(time) {
+    for (const [key, val] of Object.entries(slotMap)) {
+      if (time.includes(key)) return val;
+    }
+    return 'morning';
+  }
 
-  // 아무 결과도 없으면
-  if (!hasWarnings && !hasCautions && !hasSynergies) {
-    if (ia.source === 'none') {
+  const timeIcons = { morning: '🌅', evening: '🌙', bedtime: '😴' };
+  const timeLabels = { morning: '아침', evening: '저녁', bedtime: '취침 전' };
+
+  return `
+    <div class="schedule-section animate-in">
+      <h3><span>⏰</span> AI 맞춤 복용 시간표</h3>
+      <p style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:16px;line-height:1.5;">
+        성분 충돌을 피하도록 AI가 최적의 시간대를 배치했습니다.
+      </p>
+      <div class="timeline">
+        ${routine.map((slot) => {
+          const slotKey = getSlotKey(slot.time);
+          const savedTime = reminders[slotKey] || '08:00';
+          const icon = timeIcons[slotKey] || '💊';
+          return `
+            <div class="timeline-item">
+              <div class="time-label-row">
+                <div class="time-label">${icon} ${slot.time}</div>
+                <div class="time-picker-wrap">
+                  <button class="time-picker-btn" onclick="window.app.openTimePicker('${slotKey}', '${savedTime}')">
+                    <span class="time-picker-display">${savedTime}</span>
+                    <span class="time-picker-icon">🕐</span>
+                  </button>
+                </div>
+              </div>
+              <div class="time-supplements">
+                ${slot.products.map(p => `
+                  <div class="time-pill">
+                    <span class="pill-icon">💊</span>
+                    <span>${p}</span>
+                  </div>
+                `).join('')}
+              </div>
+              ${slot.note ? `
+                <div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;line-height:1.5;padding-left:4px;">
+                  💡 ${slot.note}
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }).join('')}
+      </div>
+      <div class="reminder-save-hint animate-in">
+        <span>⏰</span> 시간을 설정하면 복용 알림에 반영됩니다
+      </div>
+    </div>
+  `;
+}
+
+// ─── Gemini Technical Analysis (Triage) 렌더 ───
+function _renderTechnicalAnalysis(techAnalysis, extractedNutrients, source) {
+  if (!techAnalysis || techAnalysis.length === 0) {
+    if (source === 'none') {
       return `
         <div class="card animate-in" style="margin-bottom:20px;opacity:0.6;">
           <div style="display:flex;align-items:center;gap:8px;font-size:0.8rem;color:var(--text-muted);">
             <span>🤖</span>
-            <span>Gemini 성분 분석 미설정 — 서버 .env에 GEMINI_API_KEY를 추가하면 과다 섭취·충돌 경고가 표시됩니다.</span>
+            <span>Gemini 성분 분석 미설정 — 서버 .env에 GEMINI_API_KEY를 추가하면 상세 분석이 표시됩니다.</span>
           </div>
         </div>`;
     }
     return '';
   }
+
+  const triageLabel = { critical: '🚨 위험', caution: '⚡ 주의', info: '💡 참고' };
+  const triageClass = { critical: 'danger', caution: 'caution', info: 'synergy' };
 
   return `
     <div class="section-title animate-in animate-in-delay-2">
@@ -209,66 +302,42 @@ function _renderIngredientAnalysis(ia) {
       AI 성분 심층 분석
     </div>
 
-    ${ hasNutrients ? `
-      <div class="card animate-in" style="margin-bottom:12px;">
+    ${techAnalysis.map((t, i) => `
+      <div class="interaction-card ${triageClass[t.level] || 'caution'} animate-in" style="animation-delay:${0.1*i}s;opacity:0;">
+        <div class="interaction-header">
+          <div class="interaction-badge" style="font-size:0.65rem;font-weight:700;padding:2px 6px;border-radius:4px;background:${
+            t.level === 'critical' ? 'rgba(248,113,113,0.2)' : t.level === 'caution' ? 'rgba(251,191,36,0.2)' : 'rgba(96,165,250,0.15)'
+          };color:${
+            t.level === 'critical' ? 'var(--danger)' : t.level === 'caution' ? 'var(--warning)' : 'var(--accent-blue)'
+          };">${triageLabel[t.level] || t.level}</div>
+          <div>
+            <div class="interaction-title">${t.title}</div>
+            <div class="interaction-subtitle">${(t.products || []).join(' + ')}</div>
+          </div>
+        </div>
+        <div class="interaction-body">${t.detail}</div>
+        ${t.action ? `
+          <div class="interaction-tip">
+            <span class="tip-icon">→</span>
+            <span style="font-weight:500;">${t.action}</span>
+          </div>
+        ` : ''}
+      </div>
+    `).join('')}
+
+    ${extractedNutrients && extractedNutrients.length > 0 ? `
+      <div class="card animate-in" style="margin:16px 0 12px;">
         <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:8px;">📋 추출된 핵심 성분</div>
-        ${ ia.extractedNutrients.map(p => `
+        ${extractedNutrients.map(p => `
           <div style="margin-bottom:6px;">
             <span style="font-size:0.75rem;color:var(--text-secondary);">${p.product}</span><br>
             <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">
-              ${ (p.nutrients || []).map(n =>
-                `<span class="tag">${n}</span>`
-              ).join('') }
+              ${(p.nutrients || []).map(n => `<span class="tag">${n}</span>`).join('')}
             </div>
-          </div>`).join('') }
-      </div>` : '' }
-
-    ${ hasWarnings ? `
-      <div class="ia-section">
-        ${ ia.warnings.map((w, i) => `
-          <div class="interaction-card danger animate-in" style="animation-delay:${0.1*i}s;opacity:0;">
-            <div class="interaction-header">
-              <div class="interaction-badge">🔴</div>
-              <div>
-                <div class="interaction-title">과다 위험: ${w.nutrient}</div>
-                <div class="interaction-subtitle">${(w.products || []).join(' + ')}</div>
-              </div>
-            </div>
-            <div class="interaction-body">${w.reason}</div>
-            <div class="interaction-tip"><span class="tip-icon">💡</span><span>일일 상한 섭취량(UL) 초과 가능. 복용량 조정을 권장합니다.</span></div>
-          </div>`) .join('') }
-      </div>` : '' }
-
-    ${ hasCautions ? `
-      <div class="ia-section">
-        ${ ia.cautions.map((c, i) => `
-          <div class="interaction-card caution animate-in" style="animation-delay:${0.1*i}s;opacity:0;">
-            <div class="interaction-header">
-              <div class="interaction-badge">🟡</div>
-              <div>
-                <div class="interaction-title">흡수 방해: ${(c.nutrients || []).join(' ↔ ')}</div>
-                <div class="interaction-subtitle">${(c.products || []).join(' + ')}</div>
-              </div>
-            </div>
-            <div class="interaction-body">${c.reason}</div>
-            <div class="interaction-tip"><span class="tip-icon">💡</span><span>복용 시간을 2시간 이상 간격을 두면 흡수율을 높일 수 있습니다.</span></div>
-          </div>`) .join('') }
-      </div>` : '' }
-
-    ${ hasSynergies ? `
-      <div class="ia-section">
-        ${ ia.synergies.map((s, i) => `
-          <div class="interaction-card synergy animate-in" style="animation-delay:${0.1*i}s;opacity:0;">
-            <div class="interaction-header">
-              <div class="interaction-badge">✅</div>
-              <div>
-                <div class="interaction-title">시너지: ${(s.nutrients || []).join(' + ')}</div>
-                <div class="interaction-subtitle">${(s.products || []).join(' + ')}</div>
-              </div>
-            </div>
-            <div class="interaction-body">${s.reason}</div>
-          </div>`) .join('') }
-      </div>` : '' }
+          </div>
+        `).join('')}
+      </div>
+    ` : ''}
 
     <div class="card" style="margin-bottom:20px;font-size:0.72rem;color:var(--text-muted);line-height:1.6;">
       🤖 AI 분석 결과는 참고용입니다. 정확한 복용 상담은 약사 또는 의사에게 확인하세요.
@@ -315,6 +384,7 @@ function _renderTimeline(timing) {
     </div>
   `;
 }
+
 function _renderDeficiencyTab(deficiencies) {
   if (!deficiencies || deficiencies.length === 0) {
     return `

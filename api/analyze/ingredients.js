@@ -65,38 +65,63 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: `당신은 영양학·약학 전문가입니다. 아래 영양제를 동시 복용할 때의 성분 과다/충돌/시너지를 분석하고, 핵심 영양소 부족 여부도 판단하세요.
+            text: `당신은 10년 차 약사이자 개인화 건강 관리 코치입니다.
+사용자는 복잡한 수치보다 '지금 당장 무엇을 바꿔야 하는지'를 알고 싶어 합니다.
+분석 결과는 반드시 임상적 중요도에 따라 정렬하세요.
 
 [등록된 영양제]
 ${productList}
 
-분석 규칙:
-1. 각 제품의 "기능" 필드에서 핵심 영양 성분을 추출하세요.
-2. 동일 성분이 여러 제품에 포함되어 일일 상한섭취량(UL)을 초과할 위험이 있으면 warnings에 추가하세요.
-3. 동시 섭취 시 흡수를 방해하는 조합(예: 칼슘↔철분, 아연↔구리)은 cautions에 추가하세요.
-4. 서로 흡수를 촉진하는 좋은 조합은 synergies에 추가하세요.
-5. 확실한 근거가 있는 것만 포함하세요. 불확실하면 제외하세요.
-6. 아래 핵심 6대 영양소가 등록된 영양제에 포함되어 있는지 판단하세요:
-   - 비타민D (800IU), 오메가3/EPA+DHA (500mg), 마그네슘 (350mg), 비타민B군/B12 (2.4μg), 유산균 (1억CFU), 비타민C (100mg)
-   반드시 6개 모두 deficiencies 배열에 포함하세요. 등록 제품에 해당 성분이 없으면 status를 "missing"으로, 있으면 "sufficient" 또는 "partial"로 설정하세요.
-   missing인 경우 recommendation에 해당 영양소를 보충할 수 있는 식품이나 보충제를 추천하세요.
+[앱 기능 제약]
+- 이 앱은 매일 고정 시간 알림만 지원합니다 (격일/주간 알림 불가)
+- 따라서 "격일 복용", "주 3회" 같은 권고는 하지 마세요
+- 과다 섭취 위험 시, 아래 우선순위로 권고하세요:
+  1순위: 중복 성분이 적은 쪽 제품의 제거/교체 제안
+  2순위: 합산 수치와 상한치 비교 후 "허용 범위 내" 판정
+  3순위: 의사/약사 상담 권고
+
+[분석 규칙]
+1. Triage(분류): 모든 항목을 중요도로 분류
+   - critical: 즉시 조정 필요 (과다복용 위험, 위험한 상호작용)
+   - caution: 복용법 조정 권장 (흡수 방해, 타이밍 변경 필요)
+   - info: 참고 정보 (시너지 효과, 좋은 조합)
+
+2. Routine Design: 성분 충돌을 피하는 최적 복용 시간표
+   아침(식후), 저녁(식후), 취침 전 중에서 배치하고 이유를 설명
+
+3. 핵심 6대 영양소 커버리지 체크
+   비타민D(800IU), 오메가3(500mg), 마그네슘(350mg), 비타민B12(2.4μg), 유산균(1억CFU), 비타민C(100mg)
+   반드시 6개 모두 deficiencies 배열에 포함. 등록 제품에 없으면 status를 "missing", 있으면 "sufficient" 또는 "partial"로.
+
+4. Human-Centric Summary: 비전문가도 이해할 수 있는 headline과 keyAction 생성
+5. healthScore: 0~100점. 위험 요소가 없으면 85~95, critical이 있으면 60 이하.
+6. 확실한 근거가 있는 것만 포함하세요. 불확실하면 제외.
 
 JSON만 응답하세요:
 {
-  "extractedNutrients": [
-    { "product": "제품명", "nutrients": ["성분1", "성분2"] }
+  "summary": {
+    "headline": "한줄 핵심 결론",
+    "keyAction": "지금 당장 해야 할 행동",
+    "healthScore": 75
+  },
+  "optimizedRoutine": [
+    { "time": "아침 (식후)", "products": ["제품명"], "note": "이유" }
   ],
-  "warnings": [
-    { "nutrient": "성분명", "products": ["제품A", "제품B"], "reason": "이유", "severity": "high" }
-  ],
-  "cautions": [
-    { "nutrients": ["성분A", "성분B"], "products": ["제품A", "제품B"], "reason": "이유", "severity": "medium" }
-  ],
-  "synergies": [
-    { "nutrients": ["성분A", "성분B"], "products": ["제품A", "제품B"], "reason": "이유" }
+  "technicalAnalysis": [
+    {
+      "level": "critical|caution|info",
+      "title": "한줄 제목",
+      "detail": "구체적 설명",
+      "action": "사용자가 취해야 할 행동",
+      "products": ["관련 제품"],
+      "nutrients": ["관련 성분"]
+    }
   ],
   "deficiencies": [
-    { "nutrient": "영양소명", "dailyRecommended": "권장량", "status": "sufficient|partial|missing", "coveringProducts": ["해당 제품명"], "recommendation": "부족 시 추천 내용" }
+    { "nutrient": "영양소명", "dailyRecommended": "권장량", "status": "sufficient|partial|missing", "coveringProducts": ["제품명"], "recommendation": "부족 시 추천" }
+  ],
+  "extractedNutrients": [
+    { "product": "제품명", "nutrients": ["성분1", "성분2"] }
   ]
 }`
           }]
@@ -123,7 +148,7 @@ JSON만 응답하세요:
 
     const stripped = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
     const jsonMatch = stripped.match(/\{[\s\S]*\}/);
-    let result = { extractedNutrients: [], warnings: [], cautions: [], synergies: [], deficiencies: [] };
+    let result = { summary: { headline: '', keyAction: '', healthScore: 50 }, optimizedRoutine: [], technicalAnalysis: [], deficiencies: [], extractedNutrients: [] };
 
     if (jsonMatch) {
       try {
@@ -136,6 +161,6 @@ JSON만 응답하세요:
     res.json({ ...result, source: 'gemini' });
   } catch (err) {
     console.error('성분 분석 오류:', err.message);
-    res.json({ warnings: [], cautions: [], synergies: [], deficiencies: [], source: 'error', message: err.message });
+    res.json({ summary: { headline: '', keyAction: '', healthScore: 50 }, optimizedRoutine: [], technicalAnalysis: [], deficiencies: [], extractedNutrients: [], source: 'error', message: err.message });
   }
 }

@@ -112,7 +112,7 @@ export async function analyzeInteractions(supplements) {
   }
 
   // 4. Gemini 성분 과다/충돌 분석 (서버 API 호출)
-  let ingredientAnalysis = { warnings: [], cautions: [], synergies: [], extractedNutrients: [], deficiencies: [] };
+  let ingredientAnalysis = { summary: { headline: '', keyAction: '', healthScore: 50 }, optimizedRoutine: [], technicalAnalysis: [], deficiencies: [], extractedNutrients: [] };
   try {
     const geminiRes = await fetch(apiUrl('/api/analyze/ingredients'), {
       method: 'POST',
@@ -134,30 +134,33 @@ export async function analyzeInteractions(supplements) {
     console.warn('Gemini 성분 분석 실패, 로컬 결과만 표시:', err);
   }
 
-  // 5. 점수 계산 (Gemini 결과도 반영)
-  let score = 100;
-  for (const r of results) {
-    if (r.type === 'conflict' && r.severity === 'warning') score -= 15;
-    else if (r.type === 'conflict' && r.severity === 'caution') score -= 8;
-    else if (r.type === 'synergy') score += 3;
+  // 5. 점수 계산: Gemini healthScore 우선, 없으면 로컬 계산
+  let score = ingredientAnalysis.summary?.healthScore || 50;
+  if (!ingredientAnalysis.summary?.healthScore) {
+    score = 100;
+    for (const r of results) {
+      if (r.type === 'conflict' && r.severity === 'warning') score -= 15;
+      else if (r.type === 'conflict' && r.severity === 'caution') score -= 8;
+      else if (r.type === 'synergy') score += 3;
+    }
+    score = Math.max(0, Math.min(100, score));
   }
-  // Gemini 경고/주의도 점수에 반영
-  score -= (ingredientAnalysis.warnings?.length || 0) * 12;
-  score -= (ingredientAnalysis.cautions?.length || 0) * 5;
-  score += (ingredientAnalysis.synergies?.length || 0) * 2;
-  score = Math.max(0, Math.min(100, score));
 
   // 6. 시너지/충돌 분리 정렬
   const synergies = results.filter((r) => r.type === 'synergy');
   const conflicts = results.filter((r) => r.type === 'conflict');
+  const techAnalysis = ingredientAnalysis.technicalAnalysis || [];
+  const critCount = techAnalysis.filter(t => t.level === 'critical').length;
+  const cautCount = techAnalysis.filter(t => t.level === 'caution').length;
+  const infoCount = techAnalysis.filter(t => t.level === 'info').length;
 
   return {
     score,
     interactions: [...conflicts, ...synergies],
-    conflictCount: conflicts.length + (ingredientAnalysis.warnings?.length || 0) + (ingredientAnalysis.cautions?.length || 0),
-    synergyCount: synergies.length + (ingredientAnalysis.synergies?.length || 0),
+    conflictCount: conflicts.length + critCount + cautCount,
+    synergyCount: synergies.length + infoCount,
     ingredientAnalysis,
-    summary: _generateSummary(score, conflicts.length + (ingredientAnalysis.warnings?.length || 0), synergies.length + (ingredientAnalysis.synergies?.length || 0)),
+    summary: ingredientAnalysis.summary?.headline || _generateSummary(score, conflicts.length + critCount + cautCount, synergies.length + infoCount),
   };
 }
 
