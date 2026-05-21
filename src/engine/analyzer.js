@@ -113,25 +113,48 @@ export async function analyzeInteractions(supplements) {
 
   // 4. Gemini 성분 과다/충돌 분석 (서버 API 호출)
   let ingredientAnalysis = { summary: { headline: '', keyAction: '', healthScore: 50 }, optimizedRoutine: [], technicalAnalysis: [], deficiencies: [], extractedNutrients: [] };
+  let geminiDebugInfo = '';
   try {
-    const geminiRes = await fetch(apiUrl('/api/analyze/ingredients'), {
+    const fetchUrl = apiUrl('/api/analyze/ingredients');
+    const bodyData = {
+      supplements: supplements.map(s => ({
+        name: s.name,
+        registNo: s.registNo || s.id?.replace('api-', ''),
+      })),
+    };
+    console.log('[Gemini] Calling:', fetchUrl, JSON.stringify(bodyData));
+    
+    const geminiRes = await fetch(fetchUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        supplements: supplements.map(s => ({
-          name: s.name,
-          registNo: s.registNo || s.id?.replace('api-', ''),
-        })),
-      }),
+      body: JSON.stringify(bodyData),
     });
+    
+    console.log('[Gemini] Status:', geminiRes.status);
+    
     if (geminiRes.ok) {
       const data = await geminiRes.json();
+      console.log('[Gemini] Source:', data.source, 'Keys:', Object.keys(data));
       if (data.source !== 'none' && data.source !== 'error') {
         ingredientAnalysis = data;
+      } else {
+        geminiDebugInfo = `API returned source="${data.source}" msg="${data.message || ''}"`;
       }
+    } else {
+      const errText = await geminiRes.text().catch(() => '');
+      geminiDebugInfo = `HTTP ${geminiRes.status}: ${errText.slice(0, 200)}`;
     }
   } catch (err) {
     console.warn('Gemini 성분 분석 실패, 로컬 결과만 표시:', err);
+    geminiDebugInfo = `Fetch Error: ${err.message}`;
+  }
+  
+  // 디버그: Gemini 실패 시 headline에 에러 정보 표시 (임시)
+  if (geminiDebugInfo && !ingredientAnalysis.summary?.headline) {
+    ingredientAnalysis.summary = { 
+      ...ingredientAnalysis.summary, 
+      headline: `⚠️ AI 분석 실패: ${geminiDebugInfo}` 
+    };
   }
 
   // 5. 점수 계산: Gemini healthScore 우선, 없으면 로컬 계산
