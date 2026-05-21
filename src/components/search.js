@@ -180,7 +180,17 @@ async function _loadItems(query, page, replace = false) {
     if (query) params.set('keyword', query);
     if (currentCategory !== 'all') params.set('category', currentCategory);
 
-    const res = await fetch(apiUrl(`/api/supplements/search?${params}`));
+    const fetchUrl = apiUrl(`/api/supplements/search?${params}`);
+    console.log('[Search] Fetching:', fetchUrl);
+
+    const res = await fetch(fetchUrl);
+
+    // HTTP 에러 체크
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '(body 읽기 실패)');
+      throw new Error(`HTTP ${res.status} ${res.statusText}\nURL: ${fetchUrl}\nBody: ${errBody.slice(0, 200)}`);
+    }
+
     const data = await res.json();
 
     if (replace) {
@@ -195,16 +205,22 @@ async function _loadItems(query, page, replace = false) {
     container.innerHTML = _renderResults(data.total);
     _setupScrollObserver();
   } catch (err) {
-    console.warn('검색 오류:', err);
+    console.error('[Search Error]', err);
     if (replace) {
-      const debugUrl = apiUrl(`/api/supplements/search?keyword=test`);
+      const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+      const debugInfo = [
+        `Error: ${err.message}`,
+        `Platform: ${isNative ? 'Capacitor Native' : 'Web'}`,
+        `Origin: ${window.location.origin}`,
+        `Protocol: ${window.location.protocol}`,
+        `API_BASE: ${apiUrl('')}`,
+      ].join('\n');
+
       container.innerHTML = `
         <div class="no-results">
           <div class="no-results-icon">⚠️</div>
           <p>데이터를 불러오지 못했습니다.</p>
-          <p style="font-size:0.65rem;color:var(--text-muted);margin-top:8px;word-break:break-all;">
-            ${err.message}<br>URL: ${debugUrl}
-          </p>
+          <pre style="font-size:0.6rem;color:var(--text-muted);margin-top:12px;text-align:left;white-space:pre-wrap;word-break:break-all;background:rgba(255,255,255,0.03);padding:12px;border-radius:8px;max-height:200px;overflow:auto;">${debugInfo}</pre>
         </div>
       `;
     }
