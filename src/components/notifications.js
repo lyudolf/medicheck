@@ -89,9 +89,13 @@ export function renderNotifications() {
   }
 
   return `
-    <div class="notif-center">
-      ${headerHTML}
-      ${listHTML}
+    <div class="page active" id="page-notifications">
+      <div class="page-content">
+        <div class="notif-center">
+          ${headerHTML}
+          ${listHTML}
+        </div>
+      </div>
     </div>
   `;
 }
