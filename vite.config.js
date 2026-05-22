@@ -10,4 +10,12 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      // 네이티브 전용 Capacitor 플러그인은 번들에서 제외
+      external: [
+        '@capacitor-firebase/analytics',
+      ],
+    },
+  },
 });
