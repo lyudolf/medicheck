@@ -303,7 +303,7 @@ function _renderTechnicalAnalysis(techAnalysis, extractedNutrients, source) {
     </div>
 
     ${techAnalysis.map((t, i) => `
-      <div class="interaction-card ${triageClass[t.level] || 'caution'} animate-in" style="animation-delay:${0.1*i}s;opacity:0;">
+      <div class="interaction-card ${triageClass[t.level] || 'caution'} animate-in" style="animation-delay:${0.1*i}s;opacity:0;margin-bottom:16px;">
         <div class="interaction-header">
           <div class="interaction-badge" style="font-size:0.65rem;font-weight:700;padding:2px 6px;border-radius:4px;background:${
             t.level === 'critical' ? 'rgba(248,113,113,0.2)' : t.level === 'caution' ? 'rgba(251,191,36,0.2)' : 'rgba(96,165,250,0.15)'
