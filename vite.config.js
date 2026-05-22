@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import path from 'path';
 
 export default defineConfig({
   server: {
@@ -10,12 +11,10 @@ export default defineConfig({
       },
     },
   },
-  build: {
-    rollupOptions: {
-      // 네이티브 전용 Capacitor 플러그인은 번들에서 제외
-      external: [
-        '@capacitor-firebase/analytics',
-      ],
+  resolve: {
+    alias: {
+      // 웹 빌드에서 네이티브 전용 플러그인을 빈 shim으로 대체
+      '@capacitor-firebase/analytics': path.resolve(__dirname, 'src/shims/firebase-analytics.js'),
     },
   },
 });
