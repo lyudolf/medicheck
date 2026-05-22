@@ -2,6 +2,8 @@
 // Local Notification Service - 네이티브 복용 알림
 // ═══════════════════════════════════════════
 
+import { addNotification } from './notificationStore.js';
+
 let localNotifModule = null;
 
 /**
@@ -19,9 +21,27 @@ export async function initLocalNotifications() {
       return false;
     }
 
+    // 알림 수신 리스너 (앱이 포그라운드일 때)
+    LocalNotifications.addListener('localNotificationReceived', (notification) => {
+      console.log('[LocalNotif] 알림 수신:', notification);
+      // 알림 저장소에 기록
+      addNotification(
+        notification.title || '복용 알림',
+        notification.body || ''
+      );
+    });
+
     // 알림 탭 리스너
     LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
       console.log('[LocalNotif] 알림 탭:', action);
+      // 알림 저장소에 기록 (탭 통해 진입 시)
+      const notif = action.notification;
+      if (notif) {
+        addNotification(
+          notif.title || '복용 알림',
+          notif.body || ''
+        );
+      }
       if (window.app?.navigate) {
         window.app.navigate('home');
       }

@@ -13,6 +13,7 @@ import { renderCalendar, setCalendarMonth, handleDayClick } from './components/c
 import { showProductDetail, closeProductDetail, getCurrentProduct } from './components/detail.js';
 import { showDisclaimerModal, agreeDisclaimer } from './components/disclaimer.js';
 import { renderLogin } from './components/login.js';
+import { renderNotifications } from './components/notifications.js';
 import { analyzeInteractions, getTimingRecommendation } from './engine/analyzer.js';
 import { publicDataAPI } from './api/publicData.js';
 import { saveReminderTime, initServiceWorker, requestNotificationPermission, syncRemindersToSW, saveScheduleForSW, loadReminders } from './services/reminder.js';
@@ -21,6 +22,7 @@ import { fetchSupplements, insertSupplement, deleteSupplement, fetchAnalysis, up
 import { initAdMob, showRewardedAd, checkAnalysisQuota, incrementAnalysisCount, FREE_DAILY_LIMIT } from './services/admob.js';
 import { initPushNotifications } from './services/fcm.js';
 import { initLocalNotifications, scheduleReminders } from './services/localNotification.js';
+import { markAsRead, markAllAsRead, clearAll, getUnreadCount } from './services/notificationStore.js';
 import { apiUrl } from './utils/api.js';
 import { initAnalytics, logEvent, logScreenView, setUserId } from './services/analytics.js';
 
@@ -572,6 +574,9 @@ function render() {
     case 'settings':
       pageHTML = renderSettings();
       break;
+    case 'notifications':
+      pageHTML = renderNotifications();
+      break;
     default:
       pageHTML = renderHome();
   }
@@ -581,6 +586,11 @@ function render() {
 }
 
 function _renderGlobalHeader() {
+  const unread = getUnreadCount();
+  const badgeHTML = unread > 0
+    ? `<span class="notif-badge">${unread > 99 ? '99+' : unread}</span>`
+    : '';
+
   return `
     <header class="global-header">
       <div class="home-logo" onclick="window.app.navigate('home')" style="cursor:pointer;">
@@ -588,8 +598,9 @@ function _renderGlobalHeader() {
         <span class="home-logo-text">PillStack</span>
       </div>
       <div class="home-header-actions">
-        <button class="home-noti-btn" onclick="window.app.showToast('🔔 알림 기능 준비 중', 'info')">
+        <button class="home-noti-btn notif-bell-btn" onclick="window.app.navigate('notifications')">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          ${badgeHTML}
         </button>
         <button class="home-noti-btn" onclick="window.app.navigate('settings')">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -798,6 +809,23 @@ window.app = {
       _scheduleNativeReminders(state.timingResult);
     }
     showToast(enabled ? '🔔 복용 알림이 켜졌습니다.' : '🔕 복용 알림이 꺼졌습니다.', 'info');
+  },
+  // ─── Notification Center ───
+  markNotificationRead: (id) => {
+    markAsRead(id);
+    render();
+  },
+  markAllNotificationsRead: () => {
+    markAllAsRead();
+    render();
+    showToast('✅ 모든 알림을 읽음 처리했습니다.', 'success');
+  },
+  clearAllNotifications: () => {
+    if (confirm('모든 알림을 삭제하시겠습니까?')) {
+      clearAll();
+      render();
+      showToast('🗑️ 모든 알림이 삭제되었습니다.', 'info');
+    }
   },
 };
 

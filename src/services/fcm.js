@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════
 
 import { apiUrl } from '../utils/api.js';
+import { addNotification } from './notificationStore.js';
 
 let pushModule = null;
 
@@ -39,6 +40,11 @@ export async function initPushNotifications() {
     // 앱이 열려있을 때 알림 수신
     PushNotifications.addListener('pushNotificationReceived', (notification) => {
       console.log('[FCM] 알림 수신:', notification);
+      // 알림 저장소에 기록
+      addNotification(
+        notification.title || '푸시 알림',
+        notification.body || ''
+      );
       // 인앱 토스트로 표시
       if (window.app?.showToast) {
         window.app.showToast(`💊 ${notification.title || notification.body}`, 'info');
@@ -48,6 +54,14 @@ export async function initPushNotifications() {
     // 알림 탭 → 앱 열기
     PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
       console.log('[FCM] 알림 탭:', action);
+      // 알림 저장소에 기록
+      const notif = action.notification;
+      if (notif) {
+        addNotification(
+          notif.title || '푸시 알림',
+          notif.body || ''
+        );
+      }
       // 홈으로 이동
       if (window.app?.navigate) {
         window.app.navigate('home');
