@@ -2785,13 +2785,13 @@ body {
 
 .ocr-tips {
   list-style: none;
-  padding: 0;
+  padding: 0 0 0 8px;
   margin: 0;
 }
 
 .ocr-tips li {
   position: relative;
-  padding-left: 18px;
+  padding-left: 20px;
   font-size: 0.72rem;
   color: var(--text-secondary);
   line-height: 1.8;
@@ -2800,7 +2800,7 @@ body {
 .ocr-tips li::before {
   content: '•';
   position: absolute;
-  left: 4px;
+  left: 6px;
   color: var(--accent-blue);
   font-weight: bold;
 }
