@@ -6,6 +6,7 @@
 import { CATEGORIES } from '../data/fallbackDB.js';
 import { getSupplementIcon } from '../utils/icons.js';
 import { apiUrl } from '../utils/api.js';
+import { logEvent } from '../services/analytics.js';
 
 let searchTimeout = null;
 let currentCategory = 'all';
@@ -121,6 +122,10 @@ export function handleSearch(query) {
     hasMore = true;
     displayedItems = [];
     _loadItems(query, 1, true);
+    // Analytics: 검색 키워드 추적
+    if (query && query.trim().length >= 2) {
+      logEvent('search_performed', { keyword: query.trim(), category: currentCategory });
+    }
   }, 300);
 }
 

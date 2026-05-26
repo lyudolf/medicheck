@@ -84,6 +84,10 @@ function navigate(page) {
   state.currentPage = page;
   render();
 
+  // Analytics: 화면 전환 추적
+  logScreenView(page);
+  logEvent('screen_view', { screen_name: page });
+
   if (page === 'camera') {
     setTimeout(() => initCamera(), 300);
   }
@@ -451,6 +455,8 @@ function toggleDoseCheck(slot) {
       supp.remainingPills = Math.max(0, supp.remainingPills - (supp.dosagePerTake || 1));
       saveState();
     }
+    // Analytics: 복용 체크
+    logEvent('dose_checked', { supplement: slot, checked_count: checked.length + 1 });
     showToast('✅ 복용 완료!', 'success');
   } else {
     checked.splice(idx, 1);
@@ -460,6 +466,8 @@ function toggleDoseCheck(slot) {
       supp.remainingPills = Math.min(supp.totalPills || 60, supp.remainingPills + (supp.dosagePerTake || 1));
       saveState();
     }
+    // Analytics: 복용 체크 해제
+    logEvent('dose_unchecked', { supplement: slot });
     showToast('↩️ 복용 체크 해제', 'info');
   }
   localStorage.setItem(key, JSON.stringify(checked));

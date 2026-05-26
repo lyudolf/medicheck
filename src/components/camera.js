@@ -6,6 +6,7 @@
 import { CATEGORIES } from '../data/fallbackDB.js';
 import { apiUrl } from '../utils/api.js';
 import { showProductDetail } from './detail.js';
+import { logEvent } from '../services/analytics.js';
 
 let capturedImageData = null;
 
@@ -153,6 +154,8 @@ export async function startOCR() {
   if (matchesEl) matchesEl.innerHTML = '';
 
   try {
+    // Analytics: OCR 시작
+    logEvent('ocr_started');
     const res = await fetch(apiUrl('/api/ocr/analyze'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -194,8 +197,16 @@ export async function startOCR() {
     // 매칭 결과 표시
     _renderMatches(matchesEl, data.matches || [], data.searchTerms || []);
 
+    // Analytics: OCR 완료
+    logEvent('ocr_completed', {
+      product_name: data.analysis?.productName || '',
+      match_count: data.matches?.length || 0,
+    });
+
   } catch (err) {
     console.error('OCR 오류:', err);
+    // Analytics: OCR 실패
+    logEvent('ocr_failed', { error: err.message });
     if (statusEl) statusEl.innerHTML = `
       <div class="ocr-error">❌ ${err.message}</div>
     `;
