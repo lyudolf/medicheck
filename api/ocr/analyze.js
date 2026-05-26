@@ -103,57 +103,83 @@ export default async function handler(req, res) {
     );
 
     const searchTerms = analysis.searchTerms || [];
-    // 브랜드 + 제품명 조합으로도 검색
-    if (analysis.brand) searchTerms.push(analysis.brand);
+    // 제품명도 검색어에 추가 (브랜드는 단독 검색하지 않음)
     if (analysis.productName) searchTerms.push(analysis.productName);
+
+    // 모든 핵심 키워드 수집 (정렬용)
+    const allKeywords = new Set();
+    for (const term of searchTerms) {
+      term.split(/\s+/).filter(Boolean).forEach(w => allKeywords.add(w.toLowerCase()));
+    }
+    if (analysis.brand) allKeywords.add(analysis.brand.toLowerCase());
 
     // 각 검색어로 DB 조회, 결과 합산
     const allMatches = [];
     const seen = new Set();
 
-    // 검색어별로 개별 단어 AND 검색 + 붙여쓰기 폴백 (메인 검색 API와 동일)
+    const addResults = (items) => {
+      for (const item of (items || [])) {
+        const key = item.regist_no || item.id;
+        if (!seen.has(key)) { seen.add(key); allMatches.push(item); }
+      }
+    };
+
+    // 1순위: 브랜드 + 제품명 핵심 키워드 결합 AND 검색
+    if (analysis.brand && searchTerms.length > 0) {
+      try {
+        let q = supabase.from('supplements_catalog').select('*');
+        q = q.or(`name.ilike.%${analysis.brand}%,brand.ilike.%${analysis.brand}%`);
+        // 첫 2개 키워드만 AND 조건 추가 (너무 많으면 결과 0)
+        const keyTerms = (analysis.searchTerms || []).slice(0, 2);
+        for (const kw of keyTerms) {
+          const noSp = kw.replace(/\s+/g, '');
+          q = q.or(`name.ilike.%${noSp}%`);
+        }
+        q = q.range(0, 29);
+        const { data } = await q;
+        addResults(data);
+      } catch {}
+    }
+
+    // 2순위: 각 검색어별 단어 AND 검색 + 붙여쓰기 폴백
     for (const term of searchTerms) {
       if (!term) continue;
       const words = term.split(/\s+/).filter(Boolean);
       const noSpace = term.replace(/\s+/g, '');
 
-      // 쿼리 1: 각 단어 AND 검색
       try {
         let q1 = supabase.from('supplements_catalog').select('*');
         for (const word of words) {
           q1 = q1.or(`name.ilike.%${word}%,brand.ilike.%${word}%`);
         }
-        q1 = q1.range(0, 19);
-        const { data: d1 } = await q1;
-        for (const item of (d1 || [])) {
-          const key = item.regist_no || item.id;
-          if (!seen.has(key)) { seen.add(key); allMatches.push(item); }
-        }
+        const { data } = await q1.range(0, 29);
+        addResults(data);
       } catch {}
 
-      // 쿼리 2: 붙여쓰기 검색 (다중 단어일 때)
+      // 붙여쓰기 폴백
       if (words.length > 1) {
         try {
-          const { data: d2 } = await supabase
-            .from('supplements_catalog')
-            .select('*')
+          const { data } = await supabase.from('supplements_catalog').select('*')
             .or(`name.ilike.%${noSpace}%,brand.ilike.%${noSpace}%`)
-            .range(0, 19);
-          for (const item of (d2 || [])) {
-            const key = item.regist_no || item.id;
-            if (!seen.has(key)) { seen.add(key); allMatches.push(item); }
-          }
+            .range(0, 29);
+          addResults(data);
         } catch {}
       }
     }
 
-    // 관련도 정렬: 제품명에 더 많은 키워드가 포함된 것 우선
-    const coreTerms = (analysis.searchTerms || []).map(t => t.toLowerCase());
+    // 관련도 정렬: 키워드 매칭 수 + 브랜드 일치 가산점
+    const brandLower = (analysis.brand || '').toLowerCase();
     allMatches.sort((a, b) => {
       const nameA = (a.name || '').toLowerCase();
       const nameB = (b.name || '').toLowerCase();
-      const scoreA = coreTerms.filter(t => nameA.includes(t)).length;
-      const scoreB = coreTerms.filter(t => nameB.includes(t)).length;
+      const brandA = (a.brand || '').toLowerCase();
+      const brandB = (b.brand || '').toLowerCase();
+      // 키워드 매칭 수
+      let scoreA = [...allKeywords].filter(k => nameA.includes(k) || brandA.includes(k)).length;
+      let scoreB = [...allKeywords].filter(k => nameB.includes(k) || brandB.includes(k)).length;
+      // 브랜드 정확 일치 가산
+      if (brandLower && brandA.includes(brandLower)) scoreA += 3;
+      if (brandLower && brandB.includes(brandLower)) scoreB += 3;
       return scoreB - scoreA;
     });
 
