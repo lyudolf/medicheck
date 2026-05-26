@@ -901,6 +901,35 @@ async function init() {
   publicDataAPI.checkHealth()
     .then(connected => { state.apiConnected = connected; })
     .catch(() => { state.apiConnected = false; });
+
+  // 안드로이드 하드웨어 뒤로가기 버튼 처리
+  try {
+    import('@capacitor/app').then(({ App }) => {
+      App.addListener('backButton', ({ canGoBack }) => {
+        // 모달/상세 열려있으면 닫기
+        const modal = document.querySelector('.product-detail-overlay');
+        if (modal) {
+          closeProductDetail();
+          return;
+        }
+
+        // 알림 센터면 홈으로
+        if (state.currentPage === 'notifications') {
+          navigate('home');
+          return;
+        }
+
+        // 홈이 아니면 홈으로
+        if (state.currentPage !== 'home') {
+          navigate('home');
+          return;
+        }
+
+        // 홈에서 뒤로가기 → 앱 종료
+        App.exitApp();
+      });
+    }).catch(() => {});
+  } catch {}
 }
 
 document.addEventListener('DOMContentLoaded', init);
