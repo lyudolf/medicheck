@@ -111,32 +111,39 @@ export default async function handler(req, res) {
     const allMatches = [];
     const seen = new Set();
 
+    // 검색어별로 개별 단어 AND 검색 + 붙여쓰기 폴백 (메인 검색 API와 동일)
     for (const term of searchTerms) {
       if (!term) continue;
+      const words = term.split(/\s+/).filter(Boolean);
       const noSpace = term.replace(/\s+/g, '');
 
-      // 원본 검색
-      const { data: d1 } = await supabase
-        .from('supplements_catalog')
-        .select('*')
-        .or(`name.ilike.%${term}%,brand.ilike.%${term}%`)
-        .range(0, 9);
+      // 쿼리 1: 각 단어 AND 검색
+      try {
+        let q1 = supabase.from('supplements_catalog').select('*');
+        for (const word of words) {
+          q1 = q1.or(`name.ilike.%${word}%,brand.ilike.%${word}%`);
+        }
+        q1 = q1.range(0, 19);
+        const { data: d1 } = await q1;
+        for (const item of (d1 || [])) {
+          const key = item.regist_no || item.id;
+          if (!seen.has(key)) { seen.add(key); allMatches.push(item); }
+        }
+      } catch {}
 
-      // 띄어쓰기 제거 검색
-      const { data: d2 } = (noSpace !== term)
-        ? await supabase
+      // 쿼리 2: 붙여쓰기 검색 (다중 단어일 때)
+      if (words.length > 1) {
+        try {
+          const { data: d2 } = await supabase
             .from('supplements_catalog')
             .select('*')
             .or(`name.ilike.%${noSpace}%,brand.ilike.%${noSpace}%`)
-            .range(0, 9)
-        : { data: [] };
-
-      for (const item of [...(d1 || []), ...(d2 || [])]) {
-        const key = item.regist_no || item.id;
-        if (!seen.has(key)) {
-          seen.add(key);
-          allMatches.push(item);
-        }
+            .range(0, 19);
+          for (const item of (d2 || [])) {
+            const key = item.regist_no || item.id;
+            if (!seen.has(key)) { seen.add(key); allMatches.push(item); }
+          }
+        } catch {}
       }
     }
 
