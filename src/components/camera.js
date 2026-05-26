@@ -209,21 +209,29 @@ function _renderMatches(container, matches, searchTerms) {
     return;
   }
 
+  // OCR 매칭 결과를 전역에 저장 (추가 버튼용)
+  window._ocrMatches = matches;
+
   container.innerHTML = `
     <h3 class="ocr-match-title">🎯 매칭된 제품 (${matches.length}건)</h3>
     <div class="ocr-match-list">
-      ${matches.map(s => {
+      ${matches.map((s, idx) => {
         const isAdded = addedIds.has(s.id);
         const categoryInfo = CATEGORIES[s.category] || CATEGORIES.vitamin;
         return `
-          <div class="search-result-item ${isAdded ? 'added' : ''}"
-               onclick="window.app.showDetail('${s.id}')">
+          <div class="search-result-item ${isAdded ? 'added' : ''}">
             <div class="result-icon">${s.icon || categoryInfo.icon}</div>
             <div class="result-info">
               <div class="result-name">${s.name} ${isAdded ? '<span class="added-badge">추가됨</span>' : ''}</div>
               <div class="result-brand">${s.brand || ''}</div>
             </div>
-            <div class="result-arrow">›</div>
+            ${isAdded
+              ? '<div class="result-arrow" style="color:#6366f1;">✓</div>'
+              : `<button class="btn-add-small" onclick="event.stopPropagation(); window._addOcrMatch(${idx})"
+                  style="padding:6px 14px;border-radius:20px;background:#6366f1;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">
+                  + 추가
+                </button>`
+            }
           </div>
         `;
       }).join('')}
@@ -234,3 +242,15 @@ function _renderMatches(container, matches, searchTerms) {
     </button>
   `;
 }
+
+// OCR 매칭 결과에서 바로 추가
+window._addOcrMatch = function(idx) {
+  const matches = window._ocrMatches || [];
+  const s = matches[idx];
+  if (!s) return;
+  window.app.addSupplement(s);
+  // UI 업데이트 — 추가된 항목 다시 렌더
+  const container = document.getElementById('ocr-matches');
+  if (container) _renderMatches(container, matches, []);
+};
+
