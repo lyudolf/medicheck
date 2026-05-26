@@ -39,27 +39,17 @@ export default async function handler(req, res) {
             },
             {
               text: `이 이미지는 건강기능식품(영양제) 제품 사진입니다.
-이미지에서 다음 정보를 추출해주세요:
+이미지에서 다음 정보를 추출해주세요.
+코드블록이나 설명 없이 순수 JSON만 출력하세요.
 
-1. 제품명 (정확한 한글 제품명)
-2. 브랜드/제조사명
-3. 주요 성분 목록 (라벨에 보이는 성분)
-4. DB 검색용 키워드 (제품을 찾기 위한 핵심 단어 2~4개)
-
-반드시 아래 JSON 형식으로만 답하세요. 다른 설명은 넣지 마세요:
-{
-  "productName": "제품명",
-  "brand": "브랜드명",
-  "ingredients": ["성분1", "성분2"],
-  "searchTerms": ["키워드1", "키워드2"]
-}`
+{"productName":"정확한 한글 제품명","brand":"브랜드/제조사명","ingredients":["성분1","성분2"],"searchTerms":["DB검색 핵심 키워드1","키워드2"]}`
             }
           ]
         }],
         generationConfig: {
           temperature: 0.1,
           maxOutputTokens: 500,
-          responseMimeType: 'application/json',
+          thinkingConfig: { thinkingBudget: 0 },
         }
       }),
     });
