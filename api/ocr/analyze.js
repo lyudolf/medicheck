@@ -59,6 +59,7 @@ export default async function handler(req, res) {
         generationConfig: {
           temperature: 0.1,
           maxOutputTokens: 500,
+          responseMimeType: 'application/json',
         }
       }),
     });
@@ -71,15 +72,38 @@ export default async function handler(req, res) {
 
     const geminiData = await geminiRes.json();
     const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    console.log('Gemini raw response:', rawText.slice(0, 500));
 
-    // JSON 파싱 (마크다운 코드블록 제거)
-    const jsonStr = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    // JSON 파싱 (여러 방법 시도)
     let analysis;
     try {
-      analysis = JSON.parse(jsonStr);
+      // 1차: 직접 파싱
+      analysis = JSON.parse(rawText);
     } catch {
-      console.error('Gemini JSON parse error:', rawText);
-      throw new Error('AI 응답을 파싱할 수 없습니다');
+      try {
+        // 2차: 마크다운 코드블록 제거 후 파싱
+        const cleaned = rawText.replace(/```(?:json)?\n?/g, '').trim();
+        analysis = JSON.parse(cleaned);
+      } catch {
+        try {
+          // 3차: 중괄호 영역 추출
+          const match = rawText.match(/\{[\s\S]*\}/);
+          if (match) {
+            analysis = JSON.parse(match[0]);
+          } else {
+            throw new Error('no json');
+          }
+        } catch {
+          console.error('Gemini JSON parse failed. Raw:', rawText);
+          // 폴백: 텍스트에서 제품명 키워드 추출
+          analysis = {
+            productName: rawText.slice(0, 100),
+            brand: '',
+            ingredients: [],
+            searchTerms: rawText.match(/[가-힣]{2,}/g)?.slice(0, 4) || [],
+          };
+        }
+      }
     }
 
     // 2. DB에서 제품 검색
