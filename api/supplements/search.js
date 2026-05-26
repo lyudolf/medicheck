@@ -53,27 +53,7 @@ export default async function handler(req, res) {
       process.env.VITE_SUPABASE_ANON_KEY
     );
 
-    let query = supabase.from('supplements_catalog').select('*', { count: 'exact' });
-
-    // 키워드 검색
-    if (keyword && keyword.trim()) {
-      const kw = keyword.trim();
-      query = query.or(`name.ilike.%${kw}%,brand.ilike.%${kw}%`);
-    }
-
-    // 카테고리 필터 (DB에는 category 컬럼 없으므로 클라이언트 사이드 필터)
-    // 전체 조회 후 필터 (카테고리 필터 있을 때만)
-    if (category && category !== 'all') {
-      // category 필터는 결과에서 후처리
-      query = query.range(0, 9999); // 최대 범위 조회
-    } else {
-      query = query.range(from, to);
-    }
-
-    const { data, error, count } = await query;
-    if (error) throw error;
-
-    let mapped = (data || []).map(item => {
+    const mapItem = (item) => {
       const { category: cat, icon } = classifyProduct(item.name);
       return {
         id: `api-${item.regist_no || item.id}`,
@@ -91,17 +71,71 @@ export default async function handler(req, res) {
         intake: item.intake || '',
         caution: item.caution || '',
       };
-    });
+    };
+
+    let allItems = [];
+    let totalCount = 0;
+
+    if (keyword && keyword.trim()) {
+      const kw = keyword.trim();
+      const words = kw.split(/\s+/).filter(Boolean);
+      const noSpace = kw.replace(/\s+/g, '');
+
+      // 쿼리 1: 각 단어 AND 검색 (name/brand 모두)
+      let q1 = supabase.from('supplements_catalog').select('*', { count: 'exact' });
+      for (const word of words) {
+        q1 = q1.or(`name.ilike.%${word}%,brand.ilike.%${word}%`);
+      }
+      q1 = q1.range(0, 499); // 충분한 범위
+      const r1 = await q1;
+      if (!r1.error) allItems.push(...(r1.data || []));
+
+      // 쿼리 2: 붙여쓰기 검색 (다중 단어일 때만, 중복 방지)
+      if (words.length > 1 && noSpace !== words[0]) {
+        let q2 = supabase.from('supplements_catalog').select('*')
+          .or(`name.ilike.%${noSpace}%,brand.ilike.%${noSpace}%`)
+          .range(0, 499);
+        const r2 = await q2;
+        if (!r2.error) allItems.push(...(r2.data || []));
+      }
+
+      // 중복 제거 (regist_no 기준)
+      const seen = new Set();
+      allItems = allItems.filter(item => {
+        const key = item.regist_no || item.id;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      totalCount = allItems.length;
+    } else {
+      // 키워드 없을 때: 전체 목록
+      let q = supabase.from('supplements_catalog').select('*', { count: 'exact' });
+      if (category && category !== 'all') {
+        q = q.range(0, 9999);
+      } else {
+        q = q.range(from, to);
+      }
+      const { data, error, count } = await q;
+      if (error) throw error;
+      allItems = data || [];
+      totalCount = count || 0;
+    }
+
+    let mapped = allItems.map(mapItem);
 
     // 카테고리 후처리 필터
     if (category && category !== 'all') {
       mapped = mapped.filter(item => item.category === category);
+      totalCount = mapped.length;
     }
 
-    const total = category && category !== 'all' ? mapped.length : (count || 0);
-    const paged = category && category !== 'all'
+    // 키워드 검색 시에는 전체를 가져왔으므로 페이징 처리
+    const paged = (keyword && keyword.trim())
       ? mapped.slice(from, from + pageSize)
-      : mapped;
+      : (category && category !== 'all' ? mapped.slice(from, from + pageSize) : mapped);
+    const total = totalCount;
 
     res.json({
       items: paged,
