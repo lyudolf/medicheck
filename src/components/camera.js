@@ -18,14 +18,23 @@ export function renderCamera() {
       </div>
       <div class="page-content">
         <!-- 이미지 업로드 영역 -->
-        <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
+        <div class="upload-area" id="upload-area">
           <input type="file" accept="image/*" id="file-input" style="display:none;"
+                 onchange="window.app.handleImageUpload(event)" />
+          <input type="file" accept="image/*" capture="environment" id="camera-input" style="display:none;"
                  onchange="window.app.handleImageUpload(event)" />
           <div class="upload-placeholder" id="upload-placeholder">
             <div class="upload-icon">📸</div>
-            <p class="upload-title">영양제 라벨 사진 선택</p>
+            <p class="upload-title">영양제 라벨 사진</p>
             <p class="upload-desc">성분표 또는 제품명이 보이는 사진을 올려주세요</p>
-            <span class="upload-btn">🖼️ 갤러리에서 선택</span>
+            <div style="display:flex;gap:10px;justify-content:center;margin-top:8px;">
+              <button class="upload-btn" onclick="event.stopPropagation(); document.getElementById('camera-input').click()">
+                📷 카메라 촬영
+              </button>
+              <button class="upload-btn upload-btn-secondary" onclick="event.stopPropagation(); document.getElementById('file-input').click()">
+                🖼️ 갤러리 선택
+              </button>
+            </div>
           </div>
           <img id="upload-preview" class="upload-preview" style="display:none;" />
         </div>
