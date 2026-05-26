@@ -5,6 +5,7 @@
 
 import { CATEGORIES } from '../data/fallbackDB.js';
 import { apiUrl } from '../utils/api.js';
+import { showProductDetail } from './detail.js';
 
 let capturedImageData = null;
 
@@ -209,7 +210,7 @@ function _renderMatches(container, matches, searchTerms) {
     return;
   }
 
-  // OCR 매칭 결과를 전역에 저장 (추가 버튼용)
+  // OCR 매칭 결과를 전역에 저장 (상세보기용)
   window._ocrMatches = matches;
 
   container.innerHTML = `
@@ -219,19 +220,14 @@ function _renderMatches(container, matches, searchTerms) {
         const isAdded = addedIds.has(s.id);
         const categoryInfo = CATEGORIES[s.category] || CATEGORIES.vitamin;
         return `
-          <div class="search-result-item ${isAdded ? 'added' : ''}">
+          <div class="search-result-item ${isAdded ? 'added' : ''}"
+               onclick="window._showOcrDetail(${idx})" style="cursor:pointer;">
             <div class="result-icon">${s.icon || categoryInfo.icon}</div>
             <div class="result-info">
               <div class="result-name">${s.name} ${isAdded ? '<span class="added-badge">추가됨</span>' : ''}</div>
               <div class="result-brand">${s.brand || ''}</div>
             </div>
-            ${isAdded
-              ? '<div class="result-arrow" style="color:#6366f1;">✓</div>'
-              : `<button class="btn-add-small" onclick="event.stopPropagation(); window._addOcrMatch(${idx})"
-                  style="padding:6px 14px;border-radius:20px;background:#6366f1;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">
-                  + 추가
-                </button>`
-            }
+            <div class="result-arrow">›</div>
           </div>
         `;
       }).join('')}
@@ -243,14 +239,10 @@ function _renderMatches(container, matches, searchTerms) {
   `;
 }
 
-// OCR 매칭 결과에서 바로 추가
-window._addOcrMatch = function(idx) {
+// OCR 매칭 결과 → 상세 모달 열기 (검색 결과와 동일한 UX)
+window._showOcrDetail = function(idx) {
   const matches = window._ocrMatches || [];
   const s = matches[idx];
   if (!s) return;
-  window.app.addSupplement(s);
-  // UI 업데이트 — 추가된 항목 다시 렌더
-  const container = document.getElementById('ocr-matches');
-  if (container) _renderMatches(container, matches, []);
+  showProductDetail(s);
 };
-
